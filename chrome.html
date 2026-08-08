@@ -104,20 +104,45 @@
         #file-input { display: none; }
 
         /* ========================================================= */
-        /* DEDICATED PASSWORD MANAGER UI                             */
+        /* DEDICATED PASSWORD MANAGER UI & HAMBURGER DRAWER          */
         /* ========================================================= */
-        .pm-layout { display: none; background: transparent; border-radius: 16px; overflow: hidden; min-height: 80vh; width: 100%; min-width: 0; }
+        .pm-layout { display: none; background: transparent; border-radius: 16px; overflow: hidden; min-height: 80vh; width: 100%; min-width: 0; position: relative; }
         .pm-layout.active { display: flex; }
         
-        /* Sidebar */
-        .pm-sidebar { width: 240px; padding: 15px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; overflow-x: hidden; }
+        /* Backdrop Overlay for Hamburger Drawer */
+        .pm-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 998; }
+        .pm-layout.sidebar-open .pm-backdrop { display: block; }
+
+        /* Sidebar Drawer */
+        .pm-sidebar { 
+            width: 240px; 
+            padding: 15px 0; 
+            flex-shrink: 0; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+            background: #fff; 
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 999;
+            transform: translateX(-100%);
+            box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+            overflow-x: hidden; 
+        }
+        .pm-layout.sidebar-open .pm-sidebar {
+            transform: translateX(0);
+        }
+
         .pm-brand { padding: 10px 20px; font-size: 20px; font-weight: 400; cursor: pointer; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; color: var(--text-color); word-wrap: break-word; }
         .pm-nav-item { padding: 12px 25px; margin: 0 10px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; border-radius: 0 24px 24px 0; color: var(--text-secondary); display: flex; align-items: center; gap: 15px; transition: background 0.2s; }
         .pm-nav-item:hover { background: #e1e3e1; }
         .pm-nav-item.active { background: #d3e3fd; color: #041e49; }
 
         /* Main Area & Tabs */
-        .pm-main { flex: 1; padding: 0 40px; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
+        .pm-main { flex: 1; padding: 0 40px; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; width: 100%; }
         .pm-tab-content { display: none; flex-direction: column; gap: 25px; width: 100%; min-width: 0; }
         .pm-tab-content.active { display: flex; animation: fadeIn 0.3s; }
         
@@ -152,6 +177,10 @@
         .pm-site-count { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
         .pm-chevron { color: var(--text-secondary); font-size: 20px; flex-shrink: 0; }
 
+        /* Hamburger Button */
+        .pm-hamburger-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-secondary); padding: 8px 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .pm-hamburger-btn:hover { background: #e8eaed; color: var(--text-color); }
+
         /* Settings description handler to allow wrapping */
         .pm-setting-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; word-wrap: break-word; }
 
@@ -167,7 +196,7 @@
         .pm-change-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 6px 16px; border-radius: 20px; font-weight: 500; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
         .pm-change-btn:hover { background: var(--hover-bg); }
 
-        /* Global Fixed 3-Dots Dropdown Menu (Prevents Clipping) */
+        /* Global Fixed 3-Dots Dropdown Menu */
         .pm-dropdown { display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--border-color); z-index: 99999; min-width: 150px; padding: 8px 0; }
         .pm-dropdown.active { display: block; animation: fadeIn 0.15s; }
         .pm-dropdown-item { padding: 10px 20px; font-size: 14px; color: var(--text-color); cursor: pointer; white-space: nowrap; }
@@ -205,7 +234,7 @@
         .progress-bar-container { width: 100%; background-color: #e1e3e1; border-radius: 10px; margin-top: 15px; overflow: hidden; display: none; }
         .progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); transition: width 2s ease-in-out; }
 
-        /* NEW Add Password Modal Styles */
+        /* Add Password Modal Styles */
         .pm-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
         .pm-modal-overlay.active { display: flex; }
         .pm-modal { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
@@ -226,7 +255,6 @@
         .pm-save.active { background: var(--primary-color); color: white; pointer-events: auto; }
         textarea.pm-input-filled { resize: vertical; min-height: 80px; }
 
-        /* Media Queries for optimal responsiveness */
         @media (max-width: 900px) {
             .pm-main { padding: 0 20px; }
         }
@@ -234,10 +262,6 @@
             .form-container, .top-controls { flex-direction: column; align-items: stretch; }
             .action-buttons { opacity: 1; }
             .chrome-card-content { flex-direction: column; }
-            .pm-layout.active { flex-direction: column; }
-            .pm-sidebar { width: 100%; padding: 10px 0; display: flex; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border-color); }
-            .pm-brand { margin-bottom: 0; white-space: nowrap; font-size: 16px; padding: 10px;}
-            .pm-nav-item { border-radius: 24px; margin: 0 5px; white-space: nowrap; padding: 8px 16px; }
             .pm-main { padding: 15px 0; overflow-x: hidden; }
             .pm-field-row { flex-direction: column; gap: 10px; }
         }
@@ -312,17 +336,30 @@
         <!-- CUSTOM: PASSWORD MANAGER UI                        -->
         <!-- ================================================== -->
         <div id="view-Passwords" class="view-section pm-layout">
+            <!-- Backdrop for Hamburger Menu Drawer -->
+            <div class="pm-backdrop" onclick="toggleSidebar()"></div>
+
+            <!-- Sidebar Drawer -->
             <div class="pm-sidebar">
                 <div class="pm-brand" onclick="openDashboard()">
-                    <span style="font-size: 16px;">←</span> 
-                    <span style="font-size: 18px; font-weight: 400;">Google Password Manager</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <span style="font-size: 16px; font-weight: 500;">Password Manager</span>
                 </div>
-                <div class="pm-nav-item active" id="nav-pm-passwords" onclick="switchPmTab('passwords')"><span>🗝️</span> Passwords</div>
-                <div class="pm-nav-item" id="nav-pm-checkup" onclick="switchPmTab('checkup')"><span>🛡️</span> Checkup</div>
-                <div class="pm-nav-item" id="nav-pm-settings" onclick="switchPmTab('settings')"><span>⚙️</span> Settings</div>
+                <div class="pm-nav-item active" id="nav-pm-passwords" onclick="switchPmTab('passwords'); toggleSidebar();"><span>🗝️</span> Passwords</div>
+                <div class="pm-nav-item" id="nav-pm-checkup" onclick="switchPmTab('checkup'); toggleSidebar();"><span>🛡️</span> Checkup</div>
+                <div class="pm-nav-item" id="nav-pm-settings" onclick="switchPmTab('settings'); toggleSidebar();"><span>⚙️</span> Settings</div>
             </div>
             
             <div class="pm-main">
+                <!-- Top bar with Hamburger Button & Title -->
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-top: 15px;">
+                    <button class="pm-hamburger-btn" onclick="toggleSidebar()" title="Main menu">☰</button>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                        <span style="font-size: 18px; font-weight: 400; color: var(--text-color);">Google Password Manager</span>
+                    </div>
+                </div>
+
                 <!-- TAB 1: PASSWORDS (MAIN LIST) -->
                 <div id="pm-tab-passwords" class="pm-tab-content active">
                     <div id="pm-main-list-view">
@@ -331,20 +368,17 @@
                             <input type="text" id="pm-search" placeholder="Search passwords" oninput="renderPasswordsManager()">
                         </div>
 
-                        <!-- Fixed Banner -->
-                        <div class="pm-promo-card" id="pm-promo" style="margin-top: 25px;">
+                        <!-- Shortcut Promo Card -->
+                        <div class="pm-promo-card" id="pm-shortcut-promo" style="margin-top: 25px;">
                             <div style="display:flex; gap:20px; align-items:center; flex-wrap: wrap; min-width: 0;">
-                                <div style="display: flex; align-items: center; font-size: 40px; margin-right: 10px;">
-                                   <span style="color: #4285F4; margin-right: -10px;">🔵</span>
-                                   <span style="color: #F4B400; font-size: 20px;">▬</span>
-                                   <span style="color: #0F9D58; font-size: 30px;">🟩</span>
-                                </div>
+                                <div style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: #e8f0fe; border-radius: 50%; flex-shrink: 0;">🔑</div>
                                 <div class="pm-promo-text">
-                                    <h3>Google Password Manager on the web</h3>
-                                    <p>View your passwords even when you're not using Chrome or Android by signing in to <a href="#" style="color: var(--primary-color); text-decoration: none;">passwords.google.com</a></p>
+                                    <h3>Get here quicker</h3>
+                                    <p style="margin: 0 0 10px 0;">Add a shortcut to Google Password Manager</p>
+                                    <button class="pm-promo-btn" onclick="alert('To add a shortcut in Chrome, click the 3-dots menu -> Save and share -> Create shortcut...')">Add shortcut</button>
                                 </div>
                             </div>
-                            <button class="pm-promo-close" onclick="document.getElementById('pm-promo').style.display='none'">✕</button>
+                            <button class="pm-promo-close" onclick="document.getElementById('pm-shortcut-promo').style.display='none'">✕</button>
                         </div>
 
                         <div class="pm-header" style="margin-top: 25px;">
@@ -707,6 +741,11 @@
             parts = parts.filter(p => !discard.includes(p));
             if (parts.length > 0) return parts.sort((a,b) => b.length - a.length)[0]; 
             return s;
+        }
+
+        // Toggle Sidebar Drawer
+        function toggleSidebar() {
+            document.querySelector('.pm-layout').classList.toggle('sidebar-open');
         }
 
         // ==========================================
