@@ -167,8 +167,8 @@
         .pm-change-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 6px 16px; border-radius: 20px; font-weight: 500; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
         .pm-change-btn:hover { background: var(--hover-bg); }
 
-        /* 3-Dots Dropdown Menu */
-        .pm-dropdown { display: none; position: absolute; right: 10px; top: 35px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--border-color); z-index: 100; min-width: 150px; padding: 8px 0; }
+        /* Global Fixed 3-Dots Dropdown Menu (Prevents Clipping) */
+        .pm-dropdown { display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--border-color); z-index: 99999; min-width: 150px; padding: 8px 0; }
         .pm-dropdown.active { display: block; animation: fadeIn 0.15s; }
         .pm-dropdown-item { padding: 10px 20px; font-size: 14px; color: var(--text-color); cursor: pointer; white-space: nowrap; }
         .pm-dropdown-item:hover { background: var(--hover-bg); }
@@ -246,6 +246,13 @@
 <body>
 
     <div class="toast-msg" id="toast">Copied to clipboard</div>
+
+    <!-- Global Fixed Dropdown to prevent container clipping/overlapping -->
+    <div id="global-pm-dropdown" class="pm-dropdown">
+        <div class="pm-dropdown-item" id="global-drop-show" onclick="globalDropAction('show')">Show password</div>
+        <div class="pm-dropdown-item" onclick="globalDropAction('edit')">Edit</div>
+        <div class="pm-dropdown-item" onclick="globalDropAction('delete')">Delete</div>
+    </div>
 
     <div class="container">
         <!-- DASHBOARD VIEW -->
@@ -693,7 +700,7 @@
             } else if (s.startsWith('http')) {
                 try { s = new URL(s).hostname; } catch(e) {}
             }
-            if (s.includes(' ') && !s.includes('://')) return s; // explicit nice names
+            if (s.includes(' ') && !s.includes('://')) return s; 
             s = s.replace(/^(www\.|account\.|login\.|my\.|app\.|auth\.|secure\.)/, '');
             const discard = ['com','org','net','co','io','ch','in','uk','us','ca','android','app'];
             let parts = s.split('.');
@@ -801,13 +808,12 @@
                 const group = grouped[k];
                 const countText = group.accounts.length > 1 ? `<div class="pm-site-count">${group.accounts.length} accounts</div>` : '';
                 
-                // Determine best display name
                 let displayName = group.accounts[0].site;
                 let bestLen = 999;
                 group.accounts.forEach(a => {
                     let s = a.site;
                     if(s.includes(' ') && !s.includes('://')) {
-                        displayName = s; bestLen = -1; // Lock it in
+                        displayName = s; bestLen = -1; 
                     } else if (bestLen > 0) {
                         if (s.startsWith('android://')) {
                             const m = s.match(/@([^/]+)/);
@@ -818,11 +824,9 @@
                     }
                 });
 
-                // Check for nice name
                 const niceNameAcc = group.accounts.find(a => a.site && a.site.includes(' ') && !a.site.includes('://'));
                 if (niceNameAcc) displayName = niceNameAcc.site;
 
-                // Determine icon
                 let iconUrl = displayName;
                 const httpAcc = group.accounts.find(a => (a.url && a.url.startsWith('http')) || (a.site.startsWith('http')));
                 if (httpAcc) {
@@ -1223,7 +1227,7 @@
                 if(group.length > 1) {
                     reusedCount += group.length;
                     html += `<div style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); margin-bottom: 10px;">${group.length} accounts using same password</div>`;
-                    html += `<div class="pm-list-container" style="border-radius: 8px; border: 1px solid var(--border-color);">`;
+                    html += `<div class="pm-list-container" style="border-radius: 8px; border: 1px solid var(--border-color); overflow: visible;">`;
                     
                     group.forEach(acc => {
                         let iconUrl = acc.site;
@@ -1233,7 +1237,6 @@
                         const iconSrc = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(iconUrl)}&sz=64`;
                         const displayUser = acc.user ? acc.user : 'No username';
                         const originalIdx = acc.originalIndex;
-                        const dropId = `dropdown-${originalIdx}`;
                         const passSpanId = `passval-${originalIdx}`;
                         const safePass = acc.pass.replace(/'/g, "\\'");
                         let href = acc.url && acc.url.startsWith('http') ? acc.url : `https://${acc.site}`;
@@ -1250,13 +1253,8 @@
                             </div>
                             <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
                                 <button class="pm-change-btn" onclick="window.open('${href}', '_blank')">Change password <span style="font-size:16px;">↗</span></button>
-                                <div style="position: relative;">
-                                    <span class="pm-dots" style="font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0 10px;" onclick="toggleDropdown('${dropId}', event)">⋮</span>
-                                    <div id="${dropId}" class="pm-dropdown">
-                                        <div class="pm-dropdown-item" onclick="togglePasswordVisibility('${passSpanId}', '${safePass}', this, event)">Show password</div>
-                                        <div class="pm-dropdown-item" onclick="editPasswordFromCheckup(${originalIdx}, event)">Edit</div>
-                                        <div class="pm-dropdown-item" onclick="deleteSinglePasswordFromCheckup(${originalIdx}, event)">Delete</div>
-                                    </div>
+                                <div>
+                                    <span class="pm-dots" style="font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0 10px;" onclick="openGlobalDropdown(${originalIdx}, '${passSpanId}', '${safePass}', event)">⋮</span>
                                 </div>
                             </div>
                         </div>`;
@@ -1273,56 +1271,98 @@
             document.getElementById('checkup-reused-screen').style.display = 'none';
             document.getElementById('checkup-results-screen').style.display = 'block';
             document.getElementById('checkup-main-header').style.display = 'flex';
+            closeGlobalDropdown();
         }
 
-        function toggleDropdown(id, event) {
+        // Global Dropdown positioning and action handler with boundary check
+        let activeGlobalIdx = null;
+        let activePassSpanId = null;
+        let activePlainPass = null;
+
+        function openGlobalDropdown(idx, spanId, pass, event) {
             event.stopPropagation();
-            document.querySelectorAll('.pm-dropdown').forEach(d => { if(d.id !== id) d.classList.remove('active'); });
-            document.getElementById(id).classList.toggle('active');
+            activeGlobalIdx = idx;
+            activePassSpanId = spanId;
+            activePlainPass = pass;
+
+            const dropdown = document.getElementById('global-pm-dropdown');
+            const showItem = document.getElementById('global-drop-show');
+            
+            const span = document.getElementById(spanId);
+            if (span && span.getAttribute('data-shown') === 'true') {
+                showItem.textContent = 'Hide password';
+            } else {
+                showItem.textContent = 'Show password';
+            }
+
+            // Activate temporarily to calculate height
+            dropdown.classList.add('active');
+            const dropHeight = dropdown.offsetHeight || 130;
+            const rect = event.target.getBoundingClientRect();
+
+            let topPos = rect.bottom + 4;
+            if (rect.bottom + dropHeight > window.innerHeight - 10) {
+                topPos = rect.top - dropHeight - 4; // flip upwards if near bottom
+            }
+
+            dropdown.style.top = `${topPos}px`;
+            dropdown.style.left = `${Math.min(rect.right - 160, window.innerWidth - 170)}px`;
+        }
+
+        function closeGlobalDropdown() {
+            document.getElementById('global-pm-dropdown').classList.remove('active');
+            activeGlobalIdx = null;
+            activePassSpanId = null;
+            activePlainPass = null;
         }
 
         document.addEventListener('click', function() {
-            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+            closeGlobalDropdown();
         });
 
-        function togglePasswordVisibility(spanId, pass, el, event) {
-            event.stopPropagation();
-            const span = document.getElementById(spanId);
-            if (span.getAttribute('data-shown') === 'true') {
-                span.textContent = '••••••••••'; span.setAttribute('data-shown', 'false'); span.style.letterSpacing = '2px'; span.style.fontSize = '16px'; el.textContent = 'Show password';
-            } else {
-                span.textContent = pass; span.setAttribute('data-shown', 'true'); span.style.letterSpacing = 'normal'; span.style.fontSize = '14px'; el.textContent = 'Hide password';
+        function globalDropAction(action) {
+            if (activeGlobalIdx === null) return;
+            const idx = activeGlobalIdx;
+            const spanId = activePassSpanId;
+            const pass = activePlainPass;
+
+            if (action === 'show') {
+                const span = document.getElementById(spanId);
+                const showItem = document.getElementById('global-drop-show');
+                if (span.getAttribute('data-shown') === 'true') {
+                    span.textContent = '••••••••••'; 
+                    span.setAttribute('data-shown', 'false'); 
+                    span.style.letterSpacing = '2px'; 
+                    span.style.fontSize = '16px'; 
+                    showItem.textContent = 'Show password';
+                } else {
+                    span.textContent = pass; 
+                    span.setAttribute('data-shown', 'true'); 
+                    span.style.letterSpacing = 'normal'; 
+                    span.style.fontSize = '14px'; 
+                    showItem.textContent = 'Hide password';
+                }
+            } else if (action === 'edit') {
+                const p = getDB('Passwords')[idx];
+                document.getElementById('pm-site').value = p.site;
+                document.getElementById('pm-url-hidden').value = p.url || '';
+                document.getElementById('pm-user').value = p.user || '';
+                document.getElementById('pm-pass').value = p.pass;
+                document.getElementById('pm-note').value = p.note || '';
+                document.getElementById('pm-edit-index').value = idx;
+                document.getElementById('pm-modal-title').textContent = 'Edit password';
+                document.getElementById('pm-modal').dataset.returnSite = "CHECKUP_SCREEN";
+                validatePmForm();
+                openPmModal();
+            } else if (action === 'delete') {
+                if(!confirm('Are you sure you want to delete this specific saved password?')) return;
+                const data = getDB('Passwords');
+                data.splice(idx, 1);
+                saveDB('Passwords', data);
+                renderPasswordsManager();
+                showReusedPasswordsDetail(); 
             }
-            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
-        }
-
-        function editPasswordFromCheckup(idx, event) {
-            event.stopPropagation();
-            const p = getDB('Passwords')[idx];
-            document.getElementById('pm-site').value = p.site;
-            document.getElementById('pm-url-hidden').value = p.url || '';
-            document.getElementById('pm-user').value = p.user || '';
-            document.getElementById('pm-pass').value = p.pass;
-            document.getElementById('pm-note').value = p.note || '';
-            document.getElementById('pm-edit-index').value = idx;
-            document.getElementById('pm-modal-title').textContent = 'Edit password';
-            
-            document.getElementById('pm-modal').dataset.returnSite = "CHECKUP_SCREEN";
-            
-            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
-            validatePmForm();
-            openPmModal();
-        }
-
-        function deleteSinglePasswordFromCheckup(idx, event) {
-            event.stopPropagation();
-            if(!confirm('Are you sure you want to delete this specific saved password?')) return;
-            const data = getDB('Passwords');
-            data.splice(idx, 1);
-            saveDB('Passwords', data);
-            renderPasswordsManager();
-            showReusedPasswordsDetail(); 
-            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+            closeGlobalDropdown();
         }
 
         // ==========================================
