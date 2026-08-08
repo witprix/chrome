@@ -142,7 +142,7 @@
         .pm-nav-item.active { background: #d3e3fd; color: #041e49; }
 
         /* Main Area & Tabs */
-        .pm-main { flex: 1; padding: 0 40px; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; width: 100%; }
+        .pm-main { width: 100%; padding: 0 20px; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
         .pm-tab-content { display: none; flex-direction: column; gap: 25px; width: 100%; min-width: 0; }
         .pm-tab-content.active { display: flex; animation: fadeIn 0.3s; }
         
@@ -150,14 +150,6 @@
         .pm-search-container input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 28px; border: none; background: #e9eef6; font-size: 15px; outline: none; box-sizing: border-box; }
         .pm-search-container input:focus { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .pm-search-icon { position: absolute; left: 18px; top: 14px; color: var(--text-secondary); font-size: 18px;}
-
-        .pm-promo-card { border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; position: relative; background: var(--card-bg); flex-wrap: wrap; gap: 15px; width: 100%; }
-        .pm-promo-text { flex: 1; min-width: 0; }
-        .pm-promo-text h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .pm-promo-text p { margin: 0 0 15px 0; font-size: 14px; color: var(--text-secondary); }
-        .pm-promo-btn { background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 24px; font-weight: 500; cursor: pointer; transition: background 0.2s; white-space: nowrap; flex-shrink: 0;}
-        .pm-promo-btn:hover { background: var(--primary-hover); }
-        .pm-promo-close { position: absolute; top: 15px; right: 15px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-secondary); }
 
         .pm-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; min-width: 0; }
         .pm-header > div { flex: 1; min-width: 250px; }
@@ -342,7 +334,8 @@
             <!-- Sidebar Drawer -->
             <div class="pm-sidebar">
                 <div class="pm-brand" onclick="openDashboard()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                    <!-- Real Chrome Key Icon -->
+                    <svg width="24" height="24" viewBox="0 0 24 24" style="flex-shrink: 0;"><path fill="#4285F4" d="M21 10h-8.35C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H15v2h2v-2h2v-2h2v-2zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
                     <span style="font-size: 16px; font-weight: 500;">Password Manager</span>
                 </div>
                 <div class="pm-nav-item active" id="nav-pm-passwords" onclick="switchPmTab('passwords'); toggleSidebar();"><span>🗝️</span> Passwords</div>
@@ -351,12 +344,13 @@
             </div>
             
             <div class="pm-main">
-                <!-- Top bar with Hamburger Button & Title -->
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; padding-top: 15px;">
+                <!-- Top full-width header row matching real Chrome -->
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; padding-top: 10px;">
                     <button class="pm-hamburger-btn" onclick="toggleSidebar()" title="Main menu">☰</button>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-                        <span style="font-size: 18px; font-weight: 400; color: var(--text-color);">Google Password Manager</span>
+                        <!-- Real Chrome Key Icon -->
+                        <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M21 10h-8.35C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H15v2h2v-2h2v-2h2v-2zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+                        <span style="font-size: 20px; font-weight: 400; color: var(--text-color);">Google Password Manager</span>
                     </div>
                 </div>
 
@@ -368,19 +362,6 @@
                             <input type="text" id="pm-search" placeholder="Search passwords" oninput="renderPasswordsManager()">
                         </div>
 
-                        <!-- Shortcut Promo Card -->
-                        <div class="pm-promo-card" id="pm-shortcut-promo" style="margin-top: 25px;">
-                            <div style="display:flex; gap:20px; align-items:center; flex-wrap: wrap; min-width: 0;">
-                                <div style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 32px; background: #e8f0fe; border-radius: 50%; flex-shrink: 0;">🔑</div>
-                                <div class="pm-promo-text">
-                                    <h3>Get here quicker</h3>
-                                    <p style="margin: 0 0 10px 0;">Add a shortcut to Google Password Manager</p>
-                                    <button class="pm-promo-btn" onclick="alert('To add a shortcut in Chrome, click the 3-dots menu -> Save and share -> Create shortcut...')">Add shortcut</button>
-                                </div>
-                            </div>
-                            <button class="pm-promo-close" onclick="document.getElementById('pm-shortcut-promo').style.display='none'">✕</button>
-                        </div>
-
                         <div class="pm-header" style="margin-top: 25px;">
                             <div>
                                 <h2>Passwords</h2>
@@ -389,7 +370,7 @@
                             <button class="pm-add-btn" onclick="openPmModal()">Add</button>
                         </div>
 
-                        <div class="pm-list-container" id="pm-list" style="margin-top: 10px;">
+                        <div class="pm-list-container" id="pm-list" style="margin-top: 15px;">
                             <!-- Populated by JavaScript -->
                         </div>
                     </div>
@@ -413,17 +394,6 @@
                     <div class="pm-header" id="checkup-main-header">
                         <div>
                             <h2>Password Checkup</h2>
-                        </div>
-                    </div>
-                    
-                    <div id="checkup-scan-screen" class="pm-list-container" style="padding: 40px 20px; text-align: center;">
-                        <span style="font-size: 48px;" id="checkup-icon">🔍</span>
-                        <h3 style="margin: 15px 0 5px 0;" id="checkup-title">Ready to check</h3>
-                        <p style="color: var(--text-secondary); margin: 0 0 20px 0;" id="checkup-desc">Scan your passwords for security issues.</p>
-                        <button class="pm-promo-btn" id="run-scan-btn" onclick="startCheckupScan()">Run Checkup</button>
-                        
-                        <div class="progress-bar-container" id="progress-container">
-                            <div class="progress-bar" id="progress-bar"></div>
                         </div>
                     </div>
 
@@ -808,15 +778,10 @@
                 renderPasswordsManager();
             }
             if(tabId === 'checkup') {
-                document.getElementById('checkup-results-screen').style.display = 'none';
                 document.getElementById('checkup-reused-screen').style.display = 'none';
-                document.getElementById('checkup-scan-screen').style.display = 'block';
                 document.getElementById('checkup-main-header').style.display = 'flex';
-                document.getElementById('run-scan-btn').style.display = 'inline-block';
-                document.getElementById('progress-container').style.display = 'none';
-                document.getElementById('checkup-icon').textContent = '🔍';
-                document.getElementById('checkup-title').textContent = 'Ready to check';
-                document.getElementById('checkup-desc').textContent = 'Scan your passwords for security issues.';
+                // AUTO CHECK: Trigger checkup scan immediately upon tab selection
+                startCheckupScan();
             }
         }
 
@@ -1210,26 +1175,9 @@
         // CHECKUP & DRILL-DOWN LOGIC
         // ==========================================
         function startCheckupScan() {
-            document.getElementById('checkup-scan-screen').style.display = 'block';
             document.getElementById('checkup-results-screen').style.display = 'none';
             document.getElementById('checkup-reused-screen').style.display = 'none';
-            document.getElementById('run-scan-btn').style.display = 'none';
-            document.getElementById('checkup-icon').textContent = '⏳';
-            document.getElementById('checkup-title').textContent = 'Checking passwords...';
-            document.getElementById('checkup-desc').textContent = 'This might take a moment.';
-            document.getElementById('progress-container').style.display = 'block';
             
-            setTimeout(() => { document.getElementById('progress-bar').style.width = '100%'; }, 50);
-
-            setTimeout(() => {
-                document.getElementById('progress-bar').style.width = '0%';
-                document.getElementById('checkup-scan-screen').style.display = 'none';
-                showCheckupResults();
-            }, 1800);
-        }
-
-        function showCheckupResults() {
-            document.getElementById('checkup-results-screen').style.display = 'block';
             const passwords = getDB('Passwords');
             document.getElementById('cu-total').textContent = `${passwords.length} password${passwords.length !== 1 ? 's' : ''} checked`;
 
@@ -1244,6 +1192,8 @@
                 if(passGroups[pwd].length > 1) reusedCount += passGroups[pwd].length;
             });
             document.getElementById('cu-reused').textContent = `${reusedCount} reused password${reusedCount !== 1 ? 's' : ''}`;
+            
+            document.getElementById('checkup-results-screen').style.display = 'block';
         }
 
         function showReusedPasswordsDetail() {
@@ -1334,14 +1284,13 @@
                 showItem.textContent = 'Show password';
             }
 
-            // Activate temporarily to calculate height
             dropdown.classList.add('active');
             const dropHeight = dropdown.offsetHeight || 130;
             const rect = event.target.getBoundingClientRect();
 
             let topPos = rect.bottom + 4;
             if (rect.bottom + dropHeight > window.innerHeight - 10) {
-                topPos = rect.top - dropHeight - 4; // flip upwards if near bottom
+                topPos = rect.top - dropHeight - 4; 
             }
 
             dropdown.style.top = `${topPos}px`;
