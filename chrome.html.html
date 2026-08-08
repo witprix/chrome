@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Data Dashboard</title>
+    <style>
+        /* Universal Box Sizing */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0b57d0; 
+            --primary-hover: #0842a0;
+            --bg-color: #f3f6fc; 
+            --card-bg: #FFFFFF;
+            --text-color: #1f1f1f;
+            --text-secondary: #444746;
+            --border-color: #c7c7c7;
+            --danger: #b3261e;
+            --edit: #f29900;
+            --success: #146c2e;
+            --hover-bg: #f3f6fc;
+            --input-bg: #f1f3f4;
+            --input-border: #5f6368;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; overflow-x: hidden; }
+        .container { max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        /* View Management */
+        .view-section { display: none; animation: fadeIn 0.3s; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Header Navigation */
+        .header-bar { display: flex; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 10px; }
+        .back-btn { background: none; border: none; font-size: 20px; color: var(--text-secondary); cursor: pointer; padding: 10px; margin-right: 10px; border-radius: 50%; transition: background 0.2s; }
+        .back-btn:hover { background: #e8eaed; }
+        h1 { font-size: 1.5rem; font-weight: 400; margin: 0; color: var(--text-color); }
+
+        /* Dashboard Cards */
+        .dashboard-header { font-size: 1.8rem; font-weight: 400; margin-bottom: 25px; word-wrap: break-word; }
+        .chrome-card { background: var(--card-bg); border-radius: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .chrome-card-header { padding: 16px 20px; font-size: 16px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+        .chrome-card-header:hover { background-color: var(--hover-bg); }
+        .chrome-card-content { border-top: 1px solid #e1e3e1; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .sub-item { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--bg-color); border-radius: 20px; font-size: 14px; color: var(--text-color); cursor: pointer; transition: background 0.2s; flex: 1; min-width: 150px; border: 1px solid transparent; }
+        .sub-item:hover { background: #e8eaed; border-color: #747775; }
+        .sub-item-icon { font-size: 18px; flex-shrink: 0; }
+        .sub-item-count { color: var(--text-secondary); margin-left: 4px; }
+
+        /* Forms & Generic Inputs */
+        .form-container { background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 30px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); width: 100%; }
+        .form-container input, .form-container select { flex: 1; min-width: 150px; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; outline: none; }
+        .form-container input:focus, .form-container select:focus { border-color: var(--primary-color); border-width: 2px; padding: 11px 15px; }
+        .form-container button { padding: 12px 24px; background-color: var(--primary-color); color: white; border: none; border-radius: 24px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.2s; }
+        .form-container button:hover { background-color: var(--primary-hover); }
+        .btn-cancel { background-color: transparent !important; color: var(--primary-color) !important; border: 1px solid var(--border-color) !important; display: none; }
+        .btn-cancel:hover { background-color: var(--hover-bg) !important; }
+
+        /* List Items (Generic & Credit Card) */
+        .list-container { display: flex; flex-direction: column; gap: 1px; background: var(--border-color); border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); }
+        .list-item { background: var(--card-bg); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; flex-wrap: wrap; gap: 10px; }
+        .list-item:hover { background: var(--hover-bg); }
+        .item-details { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .item-title { font-weight: 500; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .item-sub { color: var(--text-secondary); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-icon { color: var(--text-secondary); border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; display: flex; justify-content: center; align-items: center; background: transparent; transition: background 0.2s; font-size: 18px; flex-shrink: 0; }
+        .btn-icon:hover { background: #e1e3e1; }
+        .delete-btn:hover { color: var(--danger); background: #fce8e8; }
+        .empty-state { text-align: center; color: var(--text-secondary); padding: 40px; background: var(--card-bg); width: 100%; }
+
+        /* Credit Card specific grid inputs */
+        .cc-grid { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
+        .cc-grid input { text-align: center; letter-spacing: 2px; }
+        
+        /* Tabs for Loyalty */
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { padding: 10px 20px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--card-bg); cursor: pointer; font-weight: 500; white-space: nowrap; color: var(--text-secondary); }
+        .tab-btn.active { background: #d3e3fd; color: #041e49; border-color: transparent; }
+        .loyalty-section { display: none; }
+        .loyalty-section.active { display: block; }
+        .scan-btn { background-color: #146c2e !important; }
+
+        /* Bookmarks Preserved Grid */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .tile-wrapper { position: relative; aspect-ratio: 4/3; }
+        .tile { background: var(--card-bg); border-radius: 16px; border: 1px solid var(--border-color); text-decoration: none; color: var(--text-color); display: flex; flex-direction: column; overflow: hidden; height: 100%; transition: box-shadow 0.2s; cursor: pointer; }
+        .tile:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .preview-img { width: 100%; height: 70%; object-fit: cover; border-bottom: 1px solid var(--border-color); background: #e8eaed; }
+        .tile-info { padding: 12px; display: flex; align-items: center; justify-content: center; height: 30%; }
+        .title { font-weight: 500; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: center; }
+        .action-buttons { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; }
+        .tile-wrapper:hover .action-buttons { opacity: 1; }
+        .edit-btn { background: var(--edit); color: white; }
+
+        /* Utility */
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
+        .btn-small { padding: 8px 16px; border: none; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; color: white; }
+        .btn-export { background-color: var(--success); }
+        .btn-import { background-color: transparent; color: var(--text-color); border: 1px solid var(--border-color); }
+        #file-input { display: none; }
+
+        /* ========================================================= */
+        /* DEDICATED PASSWORD MANAGER UI                             */
+        /* ========================================================= */
+        .pm-layout { display: none; background: transparent; border-radius: 16px; overflow: hidden; min-height: 80vh; width: 100%; }
+        .pm-layout.active { display: flex; }
+        
+        /* Sidebar */
+        .pm-sidebar { width: 240px; padding: 15px 0; flex-shrink: 0; display: flex; flex-direction: column; gap: 5px; }
+        .pm-brand { padding: 10px 20px; font-size: 20px; font-weight: 400; cursor: pointer; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; color: var(--text-color); word-wrap: break-word; }
+        .pm-nav-item { padding: 12px 25px; margin: 0 10px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; border-radius: 0 24px 24px 0; color: var(--text-secondary); display: flex; align-items: center; gap: 15px; transition: background 0.2s; }
+        .pm-nav-item:hover { background: #e1e3e1; }
+        .pm-nav-item.active { background: #d3e3fd; color: #041e49; }
+
+        /* Main Area & Tabs */
+        .pm-main { flex: 1; padding: 0 40px; min-width: 0; overflow-wrap: break-word; }
+        .pm-tab-content { display: none; flex-direction: column; gap: 25px; width: 100%; }
+        .pm-tab-content.active { display: flex; animation: fadeIn 0.3s; }
+        
+        .pm-search-container { position: relative; margin-top: 15px; width: 100%; }
+        .pm-search-container input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 28px; border: none; background: #e9eef6; font-size: 15px; outline: none; box-sizing: border-box; }
+        .pm-search-container input:focus { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .pm-search-icon { position: absolute; left: 18px; top: 14px; color: var(--text-secondary); font-size: 18px;}
+
+        .pm-promo-card { border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; display: flex; justify-content: space-between; align-items: center; position: relative; background: var(--card-bg); flex-wrap: wrap; gap: 15px; }
+        .pm-promo-text { flex: 1; min-width: 200px; }
+        .pm-promo-text h3 { margin: 0 0 5px 0; font-size: 16px; font-weight: 500; }
+        .pm-promo-text p { margin: 0 0 15px 0; font-size: 14px; color: var(--text-secondary); }
+        .pm-promo-btn { background: var(--primary-color); color: white; border: none; padding: 10px 24px; border-radius: 24px; font-weight: 500; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .pm-promo-btn:hover { background: var(--primary-hover); }
+        .pm-promo-close { position: absolute; top: 15px; right: 15px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-secondary); }
+
+        .pm-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .pm-header > div { flex: 1; min-width: 250px; }
+        .pm-header h2 { margin: 0 0 5px 0; font-weight: 400; font-size: 22px; }
+        .pm-header p { margin: 0; color: var(--text-secondary); font-size: 14px; line-height: 1.4; }
+        .pm-add-btn { background: white; color: var(--primary-color); border: 1px solid var(--border-color); padding: 10px 24px; border-radius: 24px; cursor: pointer; font-weight: 500; transition: background 0.2s; white-space: nowrap; }
+        .pm-add-btn:hover { background: var(--hover-bg); }
+
+        .pm-list-container { border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; background: white; width: 100%; }
+        .pm-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; background: white; transition: background 0.2s; justify-content: space-between; min-height: 50px; flex-wrap: wrap; gap: 15px; }
+        .pm-list-item:last-child { border-bottom: none; }
+        .pm-list-item:hover { background: var(--hover-bg); }
+        .pm-site-info { display: flex; align-items: center; gap: 15px; flex: 1; min-width: 0; }
+        .pm-site-icon { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #f1f3f4; padding: 2px; flex-shrink: 0; }
+        .pm-site-name { font-size: 14px; font-weight: 400; color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+        .pm-site-count { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pm-chevron { color: var(--text-secondary); font-size: 20px; flex-shrink: 0; }
+
+        /* CHECKUP CUSTOM UI STYLES */
+        .checkup-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); background: white; min-height: 50px; gap: 15px; flex-wrap: wrap; }
+        .checkup-list-item:last-child { border-bottom: none; }
+        .checkup-icon-green { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #1e8e3e; color: #1e8e3e; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; flex-shrink: 0; }
+        .checkup-icon-orange { width: 26px; height: 26px; border-radius: 50%; background: #f29900; color: white; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: bold; flex-shrink: 0; }
+        .checkup-item-text { flex: 1; min-width: 200px; }
+        .checkup-item-title { font-size: 15px; font-weight: 400; color: var(--text-color); margin-bottom: 4px; }
+        .checkup-item-sub { font-size: 13px; color: var(--text-secondary); }
+        
+        .pm-change-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 6px 16px; border-radius: 20px; font-weight: 500; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+        .pm-change-btn:hover { background: var(--hover-bg); }
+
+        /* 3-Dots Dropdown Menu */
+        .pm-dropdown { display: none; position: absolute; right: 10px; top: 35px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid var(--border-color); z-index: 100; min-width: 150px; padding: 8px 0; }
+        .pm-dropdown.active { display: block; animation: fadeIn 0.15s; }
+        .pm-dropdown-item { padding: 10px 20px; font-size: 14px; color: var(--text-color); cursor: pointer; }
+        .pm-dropdown-item:hover { background: var(--hover-bg); }
+
+        /* SITE DETAIL VIEW STYLES */
+        .pm-detail-card { border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; background: white; margin-bottom: 20px; width: 100%; }
+        .pm-field-row { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .pm-field-group { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+        .pm-field-label { font-size: 12px; color: var(--text-secondary); }
+        .pm-field-box { background: var(--input-bg); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; min-height: 20px; width: 100%; }
+        .pm-field-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; color: var(--text-color); }
+        .pm-field-actions { display: flex; gap: 15px; color: var(--text-secondary); font-size: 16px; flex-shrink: 0; }
+        .pm-field-actions span { cursor: pointer; }
+        .pm-field-actions span:hover { color: var(--text-color); }
+        .pm-card-actions { border-top: 1px solid var(--border-color); padding-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .pm-pill-btn { background: transparent; border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 16px; color: var(--primary-color); font-weight: 500; font-size: 13px; cursor: pointer; transition: background 0.2s; }
+        .pm-pill-btn:hover { background: var(--hover-bg); }
+        
+        .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 10px 20px; border-radius: 4px; font-size: 14px; display: none; z-index: 1000; animation: fadeIn 0.3s; }
+
+        /* Settings Custom Buttons */
+        .pm-outline-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; white-space: nowrap; font-size: 13px; }
+        .pm-outline-btn:hover { background: var(--hover-bg); }
+
+        /* Toggles for Settings */
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #80868b; transition: .2s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary-color); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Progress Bar for Checkup */
+        .progress-bar-container { width: 100%; background-color: #e1e3e1; border-radius: 10px; margin-top: 15px; overflow: hidden; display: none; }
+        .progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); transition: width 2s ease-in-out; }
+
+        /* NEW Add Password Modal Styles */
+        .pm-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+        .pm-modal-overlay.active { display: flex; }
+        .pm-modal { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+        .pm-modal h3 { margin-top: 0; font-weight: 400; font-size: 22px; margin-bottom: 20px;}
+        .pm-modal-select { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: white; font-size: 14px; margin-bottom: 20px; outline: none; }
+        .pm-input-group { margin-bottom: 16px; position: relative; }
+        .pm-input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+        .pm-input-filled { width: 100%; padding: 12px 15px; background: var(--input-bg); border: none; border-bottom: 1px solid var(--input-border); border-radius: 4px 4px 0 0; font-size: 14px; outline: none; box-sizing: border-box; }
+        .pm-input-filled:focus { border-bottom: 2px solid var(--primary-color); padding-bottom: 11px; }
+        .pm-input-site { border-bottom: 2px solid var(--danger); padding-bottom: 11px; }
+        .pm-input-site:focus { border-bottom: 2px solid var(--primary-color); }
+        .pm-eye-icon { position: absolute; right: 15px; top: 32px; cursor: pointer; color: var(--text-secondary); font-size: 18px; }
+        .pm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; flex-wrap: wrap; }
+        .pm-modal-actions button { padding: 10px 24px; border-radius: 24px; cursor: pointer; font-weight: 500; border: 1px solid transparent; font-size: 14px;}
+        .pm-cancel { background: white; color: var(--primary-color); border: 1px solid var(--border-color) !important; }
+        .pm-cancel:hover { background: var(--hover-bg); }
+        .pm-save { background: #e3e3e3; color: #a8a8a8; pointer-events: none; }
+        .pm-save.active { background: var(--primary-color); color: white; pointer-events: auto; }
+        
+        textarea.pm-input-filled { resize: vertical; min-height: 80px; }
+
+        @media (max-width: 768px) {
+            .form-container, .top-controls { flex-direction: column; align-items: stretch; }
+            .action-buttons { opacity: 1; }
+            .chrome-card-content { flex-direction: column; }
+            .pm-layout.active { flex-direction: column; }
+            .pm-sidebar { width: 100%; padding: 10px 0; display: flex; flex-direction: row; overflow-x: auto; border-bottom: 1px solid var(--border-color); }
+            .pm-brand { margin-bottom: 0; white-space: nowrap; font-size: 16px; padding: 10px;}
+            .pm-nav-item { border-radius: 24px; margin: 0 5px; white-space: nowrap; padding: 8px 16px; }
+            .pm-main { padding: 15px; }
+            .pm-field-row { flex-direction: column; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast-msg" id="toast">Copied to clipboard</div>
+
+    <div class="container">
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="view-section active">
+            <h1 class="dashboard-header">Autofill and passwords</h1>
+
+            <div class="chrome-card">
+                <div class="chrome-card-header" onclick="openModule('Passwords')">
+                    <span>Google Password Manager</span><span style="color: var(--text-secondary);">↗</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="openModule('Passwords')"><span class="sub-item-icon">🗝️</span><span>Passwords <span id="count-Passwords" class="sub-item-count">(0)</span></span></div>
+                    <div class="sub-item" onclick="openModule('Passkeys')"><span class="sub-item-icon">👤</span><span>Passkeys <span id="count-Passkeys" class="sub-item-count">(0)</span></span></div>
+                </div>
+            </div>
+
+            <div class="chrome-card">
+                <div class="chrome-card-header" onclick="openModule('CreditCards')">
+                    <span>Payments</span><span style="color: var(--text-secondary);">›</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="openModule('CreditCards')"><span class="sub-item-icon">💳</span><span>Credit & debit cards <span id="count-CreditCards" class="sub-item-count">(0)</span></span></div>
+                    <div class="sub-item" onclick="openModule('LoyaltyCards')"><span class="sub-item-icon">🤍</span><span>Loyalty cards <span id="count-LoyaltyCards" class="sub-item-count">(0)</span></span></div>
+                </div>
+            </div>
+
+            <div class="chrome-card">
+                <div class="chrome-card-header" onclick="openModule('Addresses')">
+                    <span>Contact info</span><span style="color: var(--text-secondary);">›</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="openModule('Addresses')"><span class="sub-item-icon">✉️</span><span>Addresses <span id="count-Addresses" class="sub-item-count">(0)</span></span></div>
+                </div>
+            </div>
+
+            <div class="chrome-card">
+                <div class="chrome-card-header" onclick="openModule('Licenses')">
+                    <span>Identity docs</span><span style="color: var(--text-secondary);">›</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="openModule('Licenses')"><span class="sub-item-icon">🪪</span><span>Driver's licenses <span id="count-Licenses" class="sub-item-count">(0)</span></span></div>
+                    <div class="sub-item" onclick="openModule('Passports')"><span class="sub-item-icon">🛂</span><span>Passports <span id="count-Passports" class="sub-item-count">(0)</span></span></div>
+                </div>
+            </div>
+
+            <div class="chrome-card" style="border-left: 4px solid var(--primary-color);">
+                <div class="chrome-card-header" onclick="openModule('Bookmarks')">
+                    <span>Visual Bookmarks Manager</span><span style="color: var(--text-secondary);">›</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="openModule('Bookmarks')"><span class="sub-item-icon">🔖</span><span>Saved Sites <span id="count-Bookmarks" class="sub-item-count">(0)</span></span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================== -->
+        <!-- CUSTOM: PASSWORD MANAGER UI                        -->
+        <!-- ================================================== -->
+        <div id="view-Passwords" class="view-section pm-layout">
+            <div class="pm-sidebar">
+                <div class="pm-brand" onclick="openDashboard()">
+                    <span style="font-size: 16px;">←</span> 
+                    <span style="font-size: 18px; font-weight: 400;">Google Password Manager</span>
+                </div>
+                <div class="pm-nav-item active" id="nav-pm-passwords" onclick="switchPmTab('passwords')"><span>🗝️</span> Passwords</div>
+                <div class="pm-nav-item" id="nav-pm-checkup" onclick="switchPmTab('checkup')"><span>🛡️</span> Checkup</div>
+                <div class="pm-nav-item" id="nav-pm-settings" onclick="switchPmTab('settings')"><span>⚙️</span> Settings</div>
+            </div>
+            
+            <div class="pm-main">
+                <!-- TAB 1: PASSWORDS (MAIN LIST) -->
+                <div id="pm-tab-passwords" class="pm-tab-content active">
+                    <div id="pm-main-list-view">
+                        <div class="pm-search-container">
+                            <span class="pm-search-icon">🔍</span>
+                            <input type="text" id="pm-search" placeholder="Search passwords" oninput="renderPasswordsManager()">
+                        </div>
+
+                        <!-- Fixed Banner to Match Image 1 -->
+                        <div class="pm-promo-card" id="pm-promo" style="margin-top: 25px;">
+                            <div style="display:flex; gap:20px; align-items:center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; font-size: 40px; margin-right: 10px;">
+                                   <span style="color: #4285F4; margin-right: -10px;">🔵</span>
+                                   <span style="color: #F4B400; font-size: 20px;">▬</span>
+                                   <span style="color: #0F9D58; font-size: 30px;">🟩</span>
+                                </div>
+                                <div class="pm-promo-text">
+                                    <h3>Google Password Manager on the web</h3>
+                                    <p>View your passwords even when you're not using Chrome or Android by signing in to <a href="#" style="color: var(--primary-color); text-decoration: none;">passwords.google.com</a></p>
+                                </div>
+                            </div>
+                            <button class="pm-promo-close" onclick="document.getElementById('pm-promo').style.display='none'">✕</button>
+                        </div>
+
+                        <div class="pm-header" style="margin-top: 25px;">
+                            <div>
+                                <h2>Passwords</h2>
+                                <p>Create, save, and manage your passwords so you can easily sign in to sites and apps. <a href="#" style="color: var(--primary-color); text-decoration: none;">Learn more</a></p>
+                            </div>
+                            <button class="pm-add-btn" onclick="openPmModal()">Add</button>
+                        </div>
+
+                        <div class="pm-list-container" id="pm-list" style="margin-top: 10px;">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- SITE DETAIL VIEW -->
+                    <div id="pm-site-detail-view" style="display: none; padding-top: 15px;">
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
+                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary);" onclick="hideSiteDetails()">←</span>
+                            <img src="" id="sd-icon" style="width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0;">
+                            <span style="font-size: 20px; font-weight: 400; word-break: break-word;" id="sd-title">Site Name</span>
+                        </div>
+                        
+                        <div id="sd-cards-container">
+                            <!-- Cards generated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: CHECKUP -->
+                <div id="pm-tab-checkup" class="pm-tab-content">
+                    <div class="pm-header" id="checkup-main-header">
+                        <div>
+                            <h2>Password Checkup</h2>
+                        </div>
+                    </div>
+                    
+                    <div id="checkup-scan-screen" class="pm-list-container" style="padding: 40px 20px; text-align: center;">
+                        <span style="font-size: 48px;" id="checkup-icon">🔍</span>
+                        <h3 style="margin: 15px 0 5px 0;" id="checkup-title">Ready to check</h3>
+                        <p style="color: var(--text-secondary); margin: 0 0 20px 0;" id="checkup-desc">Scan your passwords for security issues.</p>
+                        <button class="pm-promo-btn" id="run-scan-btn" onclick="startCheckupScan()">Run Checkup</button>
+                        
+                        <div class="progress-bar-container" id="progress-container">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                    </div>
+
+                    <div id="checkup-results-screen" class="pm-list-container" style="display: none; background: white;">
+                        <div style="background: #f8f9fa; padding: 30px 20px; display: flex; justify-content: center; border-bottom: 1px solid var(--border-color);">
+                            <div style="position: relative; width: 60px; height: 80px; background: #e8eaed; border: 2px solid #bdc1c6; border-radius: 4px; display: flex; flex-direction: column; align-items: center; padding-top: 15px;">
+                                <div style="position: absolute; top: -8px; width: 30px; height: 12px; background: #1a73e8; border-radius: 6px;"></div>
+                                <div style="color: #d93025; font-weight: bold; letter-spacing: 2px; font-size: 16px; margin-top: 15px;">****</div>
+                                <div style="position: absolute; right: -12px; bottom: -12px; width: 28px; height: 28px; background: #d93025; border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 18px; border: 3px solid white;">!</div>
+                            </div>
+                        </div>
+
+                        <div class="checkup-list-item">
+                            <div class="checkup-item-text">
+                                <div class="checkup-item-title" id="cu-total">0 passwords checked</div>
+                                <div class="checkup-item-sub">Just now</div>
+                            </div>
+                            <div onclick="startCheckupScan()" title="Check again" style="cursor:pointer; font-size: 20px; color: var(--text-secondary); padding: 5px;">↻</div>
+                        </div>
+
+                        <div class="checkup-list-item">
+                            <div class="checkup-icon-green">✓</div>
+                            <div class="checkup-item-text">
+                                <div class="checkup-item-title">No compromised passwords</div>
+                                <div class="checkup-item-sub">If your passwords are compromised, we'll let you know.</div>
+                            </div>
+                        </div>
+
+                        <div class="checkup-list-item" style="cursor: pointer;" onclick="showReusedPasswordsDetail()">
+                            <div class="checkup-icon-orange">!</div>
+                            <div class="checkup-item-text">
+                                <div class="checkup-item-title" id="cu-reused">0 reused passwords</div>
+                                <div class="checkup-item-sub">Create unique passwords</div>
+                            </div>
+                            <span class="pm-chevron">›</span>
+                        </div>
+
+                        <div class="checkup-list-item">
+                            <div class="checkup-icon-green">✓</div>
+                            <div class="checkup-item-text">
+                                <div class="checkup-item-title">Your passwords look strong</div>
+                                <div class="checkup-item-sub">You're using passwords that look hard to guess</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="checkup-reused-screen" style="display: none; background: white; border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden;">
+                        <div style="padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); background: white;">
+                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary);" onclick="hideReusedPasswordsDetail()">←</span>
+                            <span style="font-size: 16px; font-weight: 500;" id="reused-screen-title">0 reused passwords</span>
+                        </div>
+                        <div style="padding: 20px; background: white;">
+                            <h3 style="margin: 0 0 10px 0; font-weight: 400; font-size: 16px;">Create unique passwords</h3>
+                            <p style="color: var(--text-secondary); margin: 0 0 20px 0; font-size: 14px;">Use a unique password for every site or app. If someone discovers a reused password, it can be used to access your other accounts.</p>
+                            
+                            <div id="reused-groups-container"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- TAB 3: SETTINGS -->
+                <div id="pm-tab-settings" class="pm-tab-content">
+                    <div class="pm-header">
+                        <div><h2>Settings</h2></div>
+                    </div>
+                    
+                    <div class="pm-list-container">
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div><div class="pm-site-name">Offer to save passwords and passkeys</div></div>
+                            </div>
+                            <label class="toggle-switch"><input type="checkbox" id="setting-save-pw" onchange="saveSettings()" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Automatically create a passkey to sign in faster</div>
+                                    <div class="pm-site-count">Allow sites and apps to upgrade existing accounts to use passkeys</div>
+                                </div>
+                            </div>
+                            <label class="toggle-switch"><input type="checkbox" id="setting-auto-passkey" onchange="saveSettings()" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Sign in automatically</div>
+                                    <div class="pm-site-count" style="max-width: 600px;">Google Password Manager remembers how you signed in and automatically signs you in when possible. When off, you'll be asked for confirmation every time.</div>
+                                </div>
+                            </div>
+                            <label class="toggle-switch"><input type="checkbox" id="setting-auto-sign" onchange="saveSettings()" checked><span class="slider"></span></label>
+                        </div>
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Use Windows Hello when filling passwords</div>
+                                    <div class="pm-site-count" style="max-width: 600px;">If you share this device with others, you can turn on Windows Hello to verify it's you whenever you use a saved password</div>
+                                </div>
+                            </div>
+                            <label class="toggle-switch"><input type="checkbox" id="setting-win-hello" onchange="saveSettings()"><span class="slider"></span></label>
+                        </div>
+
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">On-device encryption</div>
+                                    <div class="pm-site-count">Your passwords are encrypted on your device before they're saved to Google Password Manager</div>
+                                </div>
+                            </div>
+                            <span class="pm-chevron" style="font-size: 16px;">↗</span>
+                        </div>
+                        
+                        <div class="pm-list-item" onclick="document.getElementById('pm-import-file').click()" style="cursor: pointer;">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Import passwords</div>
+                                    <div class="pm-site-count">Import passwords to Google Password Manager</div>
+                                </div>
+                            </div>
+                            <span class="pm-chevron">›</span>
+                        </div>
+                        <input type="file" id="pm-import-file" accept=".csv,.json" style="display: none;" onchange="importPasswords(event)">
+
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Export passwords</div>
+                                    <div class="pm-site-count" style="max-width: 500px;">After you're done using the downloaded file, delete it so that others who use this device can't see your passwords.</div>
+                                </div>
+                            </div>
+                            <button class="pm-outline-btn" onclick="exportPasswords()">Download file</button>
+                        </div>
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Add shortcut</div>
+                                    <div class="pm-site-count">To get here quicker, add a shortcut to Google Password Manager</div>
+                                </div>
+                            </div>
+                            <span class="pm-chevron">›</span>
+                        </div>
+                        <div class="pm-list-item">
+                            <div class="pm-site-info">
+                                <div>
+                                    <div class="pm-site-name">Delete all Google Password Manager data</div>
+                                    <div class="pm-site-count" style="max-width: 500px;">Passwords, passkeys, and other data will be permanently deleted from Google Password Manager</div>
+                                </div>
+                            </div>
+                            <button class="pm-outline-btn" onclick="deleteAllPMData()">Delete data</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: ADD/EDIT PASSWORD MODAL REPLICA -->
+        <div class="pm-modal-overlay" id="pm-modal">
+            <div class="pm-modal">
+                <h3 id="pm-modal-title">Add new password</h3>
+                
+                <select class="pm-modal-select">
+                    <option>Save in your Google Account</option>
+                </select>
+
+                <form id="pm-add-form" onsubmit="savePassword(event)">
+                    <input type="hidden" id="pm-edit-index" value="-1">
+                    <input type="hidden" id="pm-url-hidden" value="">
+                    
+                    <div class="pm-input-group">
+                        <label>Site</label>
+                        <input type="text" id="pm-site" class="pm-input-filled pm-input-site" placeholder="example.com" required oninput="validatePmForm()">
+                    </div>
+                    
+                    <div class="pm-input-group">
+                        <label>Username</label>
+                        <input type="text" id="pm-user" class="pm-input-filled">
+                    </div>
+                    
+                    <div class="pm-input-group">
+                        <label>Password</label>
+                        <input type="password" id="pm-pass" class="pm-input-filled" required oninput="validatePmForm()">
+                        <span class="pm-eye-icon" id="pm-modal-eye" onclick="toggleModalPassword()">👁️</span>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Make sure you're saving your current password for this site</div>
+                    </div>
+                    
+                    <div class="pm-input-group">
+                        <label>Note</label>
+                        <textarea id="pm-note" class="pm-input-filled" placeholder=""></textarea>
+                    </div>
+
+                    <div class="pm-modal-actions">
+                        <button type="button" class="pm-cancel" onclick="closePmModal()">Cancel</button>
+                        <button type="submit" class="pm-save" id="pm-save-btn">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- ================================================== -->
+
+
+        <!-- DYNAMIC GENERIC MODULE CONTAINER -->
+        <div id="view-Generic" class="view-section">
+            <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1 id="generic-title">Module</h1></div>
+            <form class="form-container" id="generic-form"></form>
+            <div class="list-container" id="generic-list"></div>
+        </div>
+
+        <!-- CUSTOM: CREDIT CARDS -->
+        <div id="view-CreditCards" class="view-section">
+            <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1>Credit & Debit Cards</h1></div>
+            <form class="form-container" id="cc-form">
+                <input type="text" id="cc-name" placeholder="Name on Card" style="width: 100%;" required>
+                <div class="cc-grid">
+                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
+                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
+                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
+                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
+                </div>
+                <div class="cc-grid" style="flex-wrap: nowrap;">
+                    <input type="text" class="cc-input" maxlength="2" placeholder="MM" required>
+                    <input type="text" class="cc-input" maxlength="2" placeholder="YY" required>
+                    <input type="password" class="cc-input" maxlength="4" placeholder="CVV" required>
+                </div>
+                <button type="submit" style="width: 100%;">Save Card</button>
+            </form>
+            <div class="list-container" id="cc-list"></div>
+        </div>
+
+        <!-- CUSTOM: LOYALTY -->
+        <div id="view-LoyaltyCards" class="view-section">
+            <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1>Loyalty & Rewards</h1></div>
+            <div class="tab-menu">
+                <button class="tab-btn active" onclick="switchLoyaltyTab('Gift')">Gift Cards</button>
+                <button class="tab-btn" onclick="switchLoyaltyTab('Ref')">Ref IDs</button>
+                <button class="tab-btn" onclick="switchLoyaltyTab('QR')">Activation QRs</button>
+            </div>
+            <div id="loyalty-Gift" class="loyalty-section active">
+                <form class="form-container" onsubmit="saveLoyalty(event, 'Gift')">
+                    <input type="text" id="lg-brand" placeholder="Store / Brand Name" required>
+                    <input type="text" id="lg-code" placeholder="Gift Card Code" required>
+                    <input type="password" id="lg-pin" placeholder="PIN (Optional)">
+                    <button type="button" class="scan-btn">📷 Scan</button>
+                    <button type="submit">Save Gift Card</button>
+                </form>
+                <div class="list-container" id="list-Gift"></div>
+            </div>
+            <div id="loyalty-Ref" class="loyalty-section">
+                <form class="form-container" onsubmit="saveLoyalty(event, 'Ref')">
+                    <input type="text" id="lr-desc" placeholder="Transaction Description" required>
+                    <input type="text" id="lr-id" placeholder="Reference ID" required>
+                    <button type="submit">Save Ref ID</button>
+                </form>
+                <div class="list-container" id="list-Ref"></div>
+            </div>
+            <div id="loyalty-QR" class="loyalty-section">
+                <form class="form-container" onsubmit="saveLoyalty(event, 'QR')">
+                    <input type="text" id="lq-name" placeholder="QR Descriptor" required>
+                    <input type="text" id="lq-data" placeholder="QR Code Data URL" required>
+                    <button type="button" class="scan-btn">📷 Scan</button>
+                    <button type="submit">Save QR Logic</button>
+                </form>
+                <div class="list-container" id="list-QR"></div>
+            </div>
+        </div>
+
+        <!-- PRESERVED VISUAL BOOKMARKS -->
+        <div id="view-Bookmarks" class="view-section">
+            <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1>Visual Bookmarks</h1></div>
+            <div class="top-controls">
+                <input type="text" id="search-input" class="form-container" style="margin:0; padding:10px; width:100%; max-width:250px;" placeholder="🔍 Search...">
+                <div class="data-controls">
+                    <button class="btn-small btn-export" onclick="exportData()">⬇️ Export JSON</button>
+                    <button class="btn-small btn-import" onclick="document.getElementById('file-input').click()">⬆️ Import</button>
+                    <input type="file" id="file-input" accept=".json,.html" onchange="importData(event)">
+                </div>
+            </div>
+            <form class="form-container" id="bookmark-form">
+                <input type="hidden" id="edit-index" value="-1">
+                <input type="text" id="site-name" placeholder="Website Name" required>
+                <input type="text" id="site-url" placeholder="URL (e.g., github.com)" required>
+                <button type="submit" id="submit-btn">Add Tile</button>
+                <button type="button" class="btn-cancel" id="cancel-btn" onclick="cancelEdit()">Cancel</button>
+            </form>
+            <div class="grid" id="bookmarks-grid"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // DATA & ROUTING ENGINE
+        // ==========================================
+        const genericModulesConfig = {
+            Passkeys: { title: 'Passkeys', fields: [{id:'site', ph:'Website/App'}, {id:'user', ph:'Username'}, {id:'key', ph:'Key Hash ID'}] },
+            Addresses: { title: 'Addresses', fields: [{id:'name', ph:'Name (e.g., Home)'}, {id:'street', ph:'Street Address'}, {id:'city', ph:'City, State, Zip'}] },
+            Licenses: { title: 'Driver\'s Licenses', fields: [{id:'name', ph:'Full Name'}, {id:'num', ph:'License Number'}, {id:'exp', ph:'Expiry (MM/YY)'}] },
+            Passports: { title: 'Passports', fields: [{id:'name', ph:'Full Name'}, {id:'num', ph:'Passport Number'}, {id:'exp', ph:'Expiry Date'}] }
+        };
+
+        let currentActiveModule = '';
+
+        function getDB(key) { return JSON.parse(localStorage.getItem(`dashboard_${key}`)) || []; }
+        function saveDB(key, data) { localStorage.setItem(`dashboard_${key}`, JSON.stringify(data)); updateDashboardCounts(); }
+
+        function openDashboard() {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-dashboard').classList.add('active');
+            updateDashboardCounts();
+        }
+
+        function openModule(moduleName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            
+            if (genericModulesConfig[moduleName]) {
+                currentActiveModule = moduleName;
+                document.getElementById('view-Generic').classList.add('active');
+                buildGenericView(moduleName);
+            } else {
+                document.getElementById('view-' + moduleName).classList.add('active');
+                if(moduleName === 'CreditCards') renderCreditCards();
+                if(moduleName === 'LoyaltyCards') { renderLoyalty('Gift'); renderLoyalty('Ref'); renderLoyalty('QR'); }
+                if(moduleName === 'Passwords') { renderPasswordsManager(); loadSettings(); }
+            }
+        }
+
+        function updateDashboardCounts() {
+            const keys = ['Passwords', 'Passkeys', 'Addresses', 'Licenses', 'Passports', 'CreditCards', 'Bookmarks'];
+            keys.forEach(k => {
+                let count = k === 'Bookmarks' ? (JSON.parse(localStorage.getItem('visual_bookmarks')) || []).length : getDB(k).length;
+                if(document.getElementById(`count-${k}`)) document.getElementById(`count-${k}`).textContent = `(${count})`;
+            });
+            const loyaltyCount = getDB('Loyalty_Gift').length + getDB('Loyalty_Ref').length + getDB('Loyalty_QR').length;
+            if(document.getElementById('count-LoyaltyCards')) document.getElementById('count-LoyaltyCards').textContent = `(${loyaltyCount})`;
+        }
+
+        // ==========================================
+        // PASSWORD MANAGER LOGIC
+        // ==========================================
+        function switchPmTab(tabId) {
+            document.querySelectorAll('.pm-nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-pm-' + tabId).classList.add('active');
+            document.querySelectorAll('.pm-tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('pm-tab-' + tabId).classList.add('active');
+            
+            if(tabId === 'passwords') {
+                hideSiteDetails(); 
+                renderPasswordsManager();
+            }
+            if(tabId === 'checkup') {
+                document.getElementById('checkup-results-screen').style.display = 'none';
+                document.getElementById('checkup-reused-screen').style.display = 'none';
+                document.getElementById('checkup-scan-screen').style.display = 'block';
+                document.getElementById('checkup-main-header').style.display = 'flex';
+                document.getElementById('run-scan-btn').style.display = 'inline-block';
+                document.getElementById('progress-container').style.display = 'none';
+                document.getElementById('checkup-icon').textContent = '🔍';
+                document.getElementById('checkup-title').textContent = 'Ready to check';
+                document.getElementById('checkup-desc').textContent = 'Scan your passwords for security issues.';
+            }
+        }
+
+        function renderPasswordsManager() {
+            const data = getDB('Passwords');
+            const list = document.getElementById('pm-list');
+            const search = document.getElementById('pm-search').value.toLowerCase();
+            
+            const grouped = {};
+            data.forEach((p, idx) => {
+                if(!p.site) return;
+                const siteLower = p.site.toLowerCase();
+                if(siteLower.includes(search)) {
+                    if(!grouped[siteLower]) grouped[siteLower] = { display: p.site, accounts: [] };
+                    grouped[siteLower].accounts.push({...p, idx});
+                }
+            });
+
+            const keys = Object.keys(grouped).sort();
+            if(keys.length === 0) {
+                list.innerHTML = '<div class="empty-state" style="border:none;">No passwords found.</div>';
+                return;
+            }
+
+            let html = '';
+            keys.forEach(k => {
+                const group = grouped[k];
+                const countText = group.accounts.length > 1 ? `<span class="pm-site-count">${group.accounts.length} accounts</span>` : '';
+                
+                let bestUrlForIcon = group.display;
+                const httpAcc = group.accounts.find(a => a.url && a.url.startsWith('http'));
+                if (httpAcc) {
+                    try { bestUrlForIcon = new URL(httpAcc.url).hostname; } catch(e) {}
+                }
+                const iconSrc = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(bestUrlForIcon)}&sz=64`;
+                const safeKey = k.replace(/'/g, "\\'");
+                
+                html += `
+                    <div class="pm-list-item" onclick="showSiteDetails('${safeKey}', '${group.display}')">
+                        <div class="pm-site-info">
+                            <img src="${iconSrc}" class="pm-site-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2NjYyIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjwvc3ZnPg=='">
+                            <span class="pm-site-name">${group.display}</span>
+                            ${countText}
+                        </div>
+                        <span class="pm-chevron">›</span>
+                    </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        // SITE DETAIL VIEW LOGIC
+        function showSiteDetails(siteKey, displaySiteName) {
+            document.getElementById('pm-main-list-view').style.display = 'none';
+            document.getElementById('pm-site-detail-view').style.display = 'block';
+            
+            document.getElementById('sd-title').textContent = displaySiteName;
+            
+            const data = getDB('Passwords');
+            let iconUrl = displaySiteName;
+            const groupAccs = data.filter(p => p.site.toLowerCase() === siteKey);
+            const httpAcc = groupAccs.find(a => a.url && a.url.startsWith('http'));
+            if (httpAcc) {
+                try { iconUrl = new URL(httpAcc.url).hostname; } catch(e) {}
+            }
+            document.getElementById('sd-icon').src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(iconUrl)}&sz=64`;
+            
+            renderSiteDetailCards(siteKey);
+        }
+
+        function hideSiteDetails() {
+            document.getElementById('pm-site-detail-view').style.display = 'none';
+            document.getElementById('pm-main-list-view').style.display = 'block';
+            renderPasswordsManager();
+        }
+
+        function renderSiteDetailCards(siteKey) {
+            const data = getDB('Passwords');
+            const container = document.getElementById('sd-cards-container');
+            let html = '';
+            
+            data.forEach((p, originalIdx) => {
+                if(p.site.toLowerCase() === siteKey) {
+                    const passId = `sd-pass-${originalIdx}`;
+                    const noteText = p.note ? p.note : 'No note added';
+                    const noteColor = p.note ? 'var(--text-color)' : '#9aa0a6';
+                    const displayUser = p.user ? p.user : 'No username';
+                    
+                    let linkUrl = p.url || p.site;
+                    let displayLink = linkUrl;
+                    let typeLabel = 'Sites';
+                    let href = displayLink.startsWith('http') ? displayLink : '#';
+
+                    if(linkUrl.startsWith('android://')) { 
+                        typeLabel = 'Apps'; 
+                        const match = linkUrl.match(/@([^/]+)/); 
+                        displayLink = match ? match[1] : linkUrl; 
+                        href = `https://play.google.com/store/apps/details?id=${displayLink}`;
+                    } else if (!linkUrl.startsWith('http')) {
+                        href = `https://${linkUrl}`;
+                    }
+                    
+                    html += `
+                    <div class="pm-detail-card">
+                        <div class="pm-field-row">
+                            <div class="pm-field-group">
+                                <span class="pm-field-label">Username</span>
+                                <div class="pm-field-box">
+                                    <input type="text" value="${displayUser}" readonly>
+                                    <div class="pm-field-actions">
+                                        <span onclick="copyToClipboard('${displayUser.replace(/'/g, "\\'")}')" title="Copy username">⎘</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pm-field-group">
+                                <span class="pm-field-label">${typeLabel}</span>
+                                <div style="padding: 12px 0; font-size: 14px;">
+                                    <a href="${href}" target="_blank" style="color: var(--text-color); text-decoration: underline;">${displayLink}</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pm-field-row">
+                            <div class="pm-field-group">
+                                <span class="pm-field-label">Password</span>
+                                <div class="pm-field-box">
+                                    <input type="password" id="${passId}" value="${p.pass}" readonly>
+                                    <div class="pm-field-actions">
+                                        <span onclick="toggleDetailPassword('${passId}')" title="Show password">👁️</span>
+                                        <span onclick="copyToClipboard('${p.pass.replace(/'/g, "\\'")}')" title="Copy password">⎘</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="pm-field-group">
+                                <span class="pm-field-label">Note</span>
+                                <div class="pm-field-box" style="color: ${noteColor};">
+                                    ${noteText}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="pm-card-actions">
+                            <button class="pm-pill-btn" onclick="editSingleAccount(${originalIdx}, '${siteKey}')">Edit</button>
+                            <button class="pm-pill-btn" onclick="deleteSingleAccount(${originalIdx}, '${siteKey}')">Delete</button>
+                            <div style="flex:1;"></div>
+                            <button class="pm-pill-btn" onclick="alert('Share functionality simulated.')">Share</button>
+                        </div>
+                    </div>`;
+                }
+            });
+            
+            if(html === '') {
+                hideSiteDetails(); 
+            } else {
+                container.innerHTML = html;
+            }
+        }
+
+        function toggleDetailPassword(inputId) {
+            const input = document.getElementById(inputId);
+            if(input.type === 'password') input.type = 'text';
+            else input.type = 'password';
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.style.display = 'block';
+                setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            });
+        }
+
+        function deleteSingleAccount(idx, siteKey) {
+            if(!confirm('Are you sure you want to delete this specific saved password?')) return;
+            const data = getDB('Passwords');
+            data.splice(idx, 1);
+            saveDB('Passwords', data);
+            renderSiteDetailCards(siteKey); 
+        }
+
+        function editSingleAccount(idx, siteKey) {
+            const p = getDB('Passwords')[idx];
+            document.getElementById('pm-site').value = p.site;
+            document.getElementById('pm-url-hidden').value = p.url || '';
+            document.getElementById('pm-user').value = p.user || '';
+            document.getElementById('pm-pass').value = p.pass;
+            document.getElementById('pm-note').value = p.note || '';
+            document.getElementById('pm-edit-index').value = idx;
+            document.getElementById('pm-modal-title').textContent = 'Edit password';
+            validatePmForm();
+            
+            document.getElementById('pm-modal').dataset.returnSite = siteKey;
+            document.getElementById('pm-modal').classList.add('active');
+        }
+
+        // ADD/EDIT MODAL LOGIC
+        function openPmModal() { 
+            document.getElementById('pm-modal').classList.add('active'); 
+            validatePmForm();
+        }
+        
+        function closePmModal() { 
+            document.getElementById('pm-modal').classList.remove('active'); 
+            document.getElementById('pm-add-form').reset(); 
+            document.getElementById('pm-edit-index').value = -1;
+            document.getElementById('pm-url-hidden').value = '';
+            document.getElementById('pm-modal-title').textContent = 'Add new password';
+            document.getElementById('pm-pass').type = 'password';
+            document.getElementById('pm-site').classList.add('pm-input-site');
+            delete document.getElementById('pm-modal').dataset.returnSite;
+        }
+
+        function toggleModalPassword() {
+            const input = document.getElementById('pm-pass');
+            if(input.type === 'password') input.type = 'text';
+            else input.type = 'password';
+        }
+
+        function validatePmForm() {
+            const site = document.getElementById('pm-site');
+            const pass = document.getElementById('pm-pass').value.trim();
+            const btn = document.getElementById('pm-save-btn');
+            
+            if(site.value.trim() !== '') {
+                site.classList.remove('pm-input-site');
+            } else {
+                site.classList.add('pm-input-site');
+            }
+
+            if(site.value.trim() !== '' && pass !== '') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+        
+        function savePassword(e) {
+            e.preventDefault();
+            const siteInput = document.getElementById('pm-site').value.trim();
+            const passInput = document.getElementById('pm-pass').value.trim();
+            if(!siteInput || !passInput) return;
+
+            const data = getDB('Passwords');
+            const editIdx = parseInt(document.getElementById('pm-edit-index').value);
+            const returnSite = document.getElementById('pm-modal').dataset.returnSite;
+            const hiddenUrl = document.getElementById('pm-url-hidden').value;
+
+            const newItem = { 
+                site: siteInput, 
+                url: hiddenUrl || siteInput,
+                user: document.getElementById('pm-user').value.trim(), 
+                pass: passInput,
+                note: document.getElementById('pm-note').value.trim()
+            };
+            
+            if (editIdx === -1) {
+                data.push(newItem);
+            } else {
+                data[editIdx] = newItem;
+            }
+            
+            saveDB('Passwords', data);
+            closePmModal();
+            
+            if(returnSite && returnSite !== "CHECKUP_SCREEN") {
+                renderSiteDetailCards(returnSite.toLowerCase());
+            } else if (returnSite === "CHECKUP_SCREEN") {
+                showReusedPasswordsDetail();
+            } else {
+                renderPasswordsManager();
+            }
+        }
+
+
+        // ==========================================
+        // SETTINGS & CSV IMPORT LOGIC
+        // ==========================================
+        function loadSettings() {
+            document.getElementById('setting-save-pw').checked = JSON.parse(localStorage.getItem('pm_set_save') ?? 'true');
+            document.getElementById('setting-auto-passkey').checked = JSON.parse(localStorage.getItem('pm_set_passkey') ?? 'true');
+            document.getElementById('setting-auto-sign').checked = JSON.parse(localStorage.getItem('pm_set_auto') ?? 'true');
+            document.getElementById('setting-win-hello').checked = JSON.parse(localStorage.getItem('pm_set_hello') ?? 'false');
+        }
+        
+        function saveSettings() {
+            localStorage.setItem('pm_set_save', document.getElementById('setting-save-pw').checked);
+            localStorage.setItem('pm_set_passkey', document.getElementById('setting-auto-passkey').checked);
+            localStorage.setItem('pm_set_auto', document.getElementById('setting-auto-sign').checked);
+            localStorage.setItem('pm_set_hello', document.getElementById('setting-win-hello').checked);
+        }
+
+        function parseCSVLine(text) {
+            let p = '', c = '', r = []; let q = false;
+            for (let i = 0; i < text.length; i++) {
+                c = text[i];
+                if (c === '"') q = !q; else if (c === ',' && !q) { r.push(p.trim().replace(/^"|"$/g, '')); p = ''; } else p += c;
+            }
+            r.push(p.trim().replace(/^"|"$/g, '')); return r;
+        }
+
+        function importPasswords(event) {
+            const file = event.target.files[0]; 
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                let importedData = [];
+
+                if (file.name.endsWith('.csv')) {
+                    const lines = content.split(/\r?\n/);
+                    if (lines.length > 1) {
+                        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+                        const nameIdx = headers.indexOf('name');
+                        const urlIdx = headers.indexOf('url');
+                        const userIdx = headers.indexOf('username');
+                        const passIdx = headers.indexOf('password');
+                        const noteIdx = headers.indexOf('note');
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i].trim()) continue;
+                            const cols = parseCSVLine(lines[i]);
+                            
+                            let rawUrl = urlIdx !== -1 ? cols[urlIdx] : '';
+                            let rawName = nameIdx !== -1 ? cols[nameIdx] : '';
+                            
+                            if (!rawName && rawUrl) {
+                                try { 
+                                    if (rawUrl.startsWith('http')) rawName = new URL(rawUrl).hostname.replace(/^www\./, ''); 
+                                    else rawName = rawUrl; 
+                                } catch(err) { rawName = rawUrl; }
+                            } else if (!rawName) {
+                                rawName = 'Unnamed Site';
+                            }
+
+                            if(cols[userIdx] || cols[passIdx]) {
+                                importedData.push({ 
+                                    site: rawName, 
+                                    url: rawUrl,
+                                    user: cols[userIdx] || '', 
+                                    pass: cols[passIdx] || '',
+                                    note: noteIdx !== -1 ? (cols[noteIdx] || '') : ''
+                                });
+                            }
+                        }
+                    }
+                } else if (file.name.endsWith('.json')) {
+                    try { const parsed = JSON.parse(content); if (Array.isArray(parsed)) importedData = parsed; } catch(err) {}
+                }
+
+                if (importedData.length > 0) {
+                    const currentData = getDB('Passwords');
+                    saveDB('Passwords', [...currentData, ...importedData]);
+                    renderPasswordsManager();
+                    alert(`Successfully imported ${importedData.length} passwords!`);
+                } else {
+                    alert("Could not import passwords. Upload a valid Chrome CSV or JSON export.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+        
+        function exportPasswords() {
+            const dataStr = localStorage.getItem('dashboard_Passwords') || '[]';
+            const linkElement = document.createElement('a'); 
+            linkElement.setAttribute('href', 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr));
+            linkElement.setAttribute('download', 'Google_Passwords_Export.json'); 
+            linkElement.click();
+        }
+        
+        function deleteAllPMData() {
+            if(confirm('Are you sure you want to permanently delete all passwords, passkeys, and other data from Google Password Manager?')) {
+                saveDB('Passwords', []);
+                saveDB('Passkeys', []);
+                renderPasswordsManager();
+                alert('All Google Password Manager data has been securely deleted.');
+            }
+        }
+
+        // ==========================================
+        // CHECKUP & DRILL-DOWN LOGIC
+        // ==========================================
+        function startCheckupScan() {
+            document.getElementById('checkup-scan-screen').style.display = 'block';
+            document.getElementById('checkup-results-screen').style.display = 'none';
+            document.getElementById('checkup-reused-screen').style.display = 'none';
+            document.getElementById('run-scan-btn').style.display = 'none';
+            document.getElementById('checkup-icon').textContent = '⏳';
+            document.getElementById('checkup-title').textContent = 'Checking passwords...';
+            document.getElementById('checkup-desc').textContent = 'This might take a moment.';
+            document.getElementById('progress-container').style.display = 'block';
+            
+            setTimeout(() => { document.getElementById('progress-bar').style.width = '100%'; }, 50);
+
+            setTimeout(() => {
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('checkup-scan-screen').style.display = 'none';
+                showCheckupResults();
+            }, 1800);
+        }
+
+        function showCheckupResults() {
+            document.getElementById('checkup-results-screen').style.display = 'block';
+            const passwords = getDB('Passwords');
+            document.getElementById('cu-total').textContent = `${passwords.length} password${passwords.length !== 1 ? 's' : ''} checked`;
+
+            const passGroups = {};
+            passwords.forEach(p => {
+                if(!passGroups[p.pass]) passGroups[p.pass] = [];
+                passGroups[p.pass].push(p);
+            });
+
+            let reusedCount = 0;
+            Object.keys(passGroups).forEach(pwd => {
+                if(passGroups[pwd].length > 1) reusedCount += passGroups[pwd].length;
+            });
+            document.getElementById('cu-reused').textContent = `${reusedCount} reused password${reusedCount !== 1 ? 's' : ''}`;
+        }
+
+        function showReusedPasswordsDetail() {
+            document.getElementById('checkup-main-header').style.display = 'none';
+            document.getElementById('checkup-results-screen').style.display = 'none';
+            document.getElementById('checkup-reused-screen').style.display = 'block';
+
+            const passwords = getDB('Passwords');
+            const passGroups = {};
+            passwords.forEach((p, idx) => {
+                if(!passGroups[p.pass]) passGroups[p.pass] = [];
+                passGroups[p.pass].push({...p, originalIndex: idx}); 
+            });
+
+            let reusedCount = 0;
+            let html = '';
+            
+            Object.keys(passGroups).forEach(pwd => {
+                const group = passGroups[pwd];
+                if(group.length > 1) {
+                    reusedCount += group.length;
+                    html += `<div style="margin-top: 20px; font-size: 14px; color: var(--text-secondary); margin-bottom: 10px;">${group.length} accounts using same password</div>`;
+                    html += `<div class="pm-list-container" style="border-radius: 8px; border: 1px solid var(--border-color);">`;
+                    
+                    group.forEach(acc => {
+                        let iconUrl = acc.site;
+                        if (acc.url && acc.url.startsWith('http')) {
+                            try { iconUrl = new URL(acc.url).hostname; } catch(e) {}
+                        }
+                        const iconSrc = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(iconUrl)}&sz=64`;
+                        const displayUser = acc.user ? acc.user : 'No username';
+                        const originalIdx = acc.originalIndex;
+                        const dropId = `dropdown-${originalIdx}`;
+                        const passSpanId = `passval-${originalIdx}`;
+                        const safePass = acc.pass.replace(/'/g, "\\'");
+                        let href = acc.url && acc.url.startsWith('http') ? acc.url : `https://${acc.site}`;
+                        
+                        html += `
+                        <div class="pm-list-item" style="cursor: default; padding: 15px;">
+                            <div class="pm-site-info">
+                                <img src="${iconSrc}" class="pm-site-icon" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iI2NjYyIgZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjwvc3ZnPg=='">
+                                <div>
+                                    <div class="pm-site-name">${acc.site}</div>
+                                    <div class="pm-site-count" style="margin-top:2px;">${displayUser} <span id="${passSpanId}" data-shown="false" style="letter-spacing: 2px; font-weight:bold; margin-left: 8px; font-size: 16px;">••••••••••</span></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="pm-change-btn" onclick="window.open('${href}', '_blank')">Change password <span style="font-size:16px;">↗</span></button>
+                                <div style="position: relative;">
+                                    <span class="pm-dots" style="font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0 10px;" onclick="toggleDropdown('${dropId}', event)">⋮</span>
+                                    <div id="${dropId}" class="pm-dropdown">
+                                        <div class="pm-dropdown-item" onclick="togglePasswordVisibility('${passSpanId}', '${safePass}', this, event)">Show password</div>
+                                        <div class="pm-dropdown-item" onclick="editPasswordFromCheckup(${originalIdx}, event)">Edit</div>
+                                        <div class="pm-dropdown-item" onclick="deleteSinglePasswordFromCheckup(${originalIdx}, event)">Delete</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                }
+            });
+
+            document.getElementById('reused-screen-title').textContent = `${reusedCount} reused passwords`;
+            document.getElementById('reused-groups-container').innerHTML = html;
+        }
+
+        function hideReusedPasswordsDetail() {
+            document.getElementById('checkup-reused-screen').style.display = 'none';
+            document.getElementById('checkup-results-screen').style.display = 'block';
+            document.getElementById('checkup-main-header').style.display = 'flex';
+        }
+
+        function toggleDropdown(id, event) {
+            event.stopPropagation();
+            document.querySelectorAll('.pm-dropdown').forEach(d => { if(d.id !== id) d.classList.remove('active'); });
+            document.getElementById(id).classList.toggle('active');
+        }
+
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+        });
+
+        function togglePasswordVisibility(spanId, pass, el, event) {
+            event.stopPropagation();
+            const span = document.getElementById(spanId);
+            if (span.getAttribute('data-shown') === 'true') {
+                span.textContent = '••••••••••'; span.setAttribute('data-shown', 'false'); span.style.letterSpacing = '2px'; span.style.fontSize = '16px'; el.textContent = 'Show password';
+            } else {
+                span.textContent = pass; span.setAttribute('data-shown', 'true'); span.style.letterSpacing = 'normal'; span.style.fontSize = '14px'; el.textContent = 'Hide password';
+            }
+            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+        }
+
+        function editPasswordFromCheckup(idx, event) {
+            event.stopPropagation();
+            const p = getDB('Passwords')[idx];
+            document.getElementById('pm-site').value = p.site;
+            document.getElementById('pm-url-hidden').value = p.url || '';
+            document.getElementById('pm-user').value = p.user || '';
+            document.getElementById('pm-pass').value = p.pass;
+            document.getElementById('pm-note').value = p.note || '';
+            document.getElementById('pm-edit-index').value = idx;
+            document.getElementById('pm-modal-title').textContent = 'Edit password';
+            
+            document.getElementById('pm-modal').dataset.returnSite = "CHECKUP_SCREEN";
+            
+            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+            validatePmForm();
+            openPmModal();
+        }
+
+        function deleteSinglePasswordFromCheckup(idx, event) {
+            event.stopPropagation();
+            if(!confirm('Are you sure you want to delete this specific saved password?')) return;
+            const data = getDB('Passwords');
+            data.splice(idx, 1);
+            saveDB('Passwords', data);
+            renderPasswordsManager();
+            showReusedPasswordsDetail(); 
+            document.querySelectorAll('.pm-dropdown').forEach(d => d.classList.remove('active'));
+        }
+
+        // ==========================================
+        // DYNAMIC GENERIC MODULE GENERATOR (Untouched)
+        // ==========================================
+        function buildGenericView(moduleName) {
+            const config = genericModulesConfig[moduleName];
+            document.getElementById('generic-title').textContent = config.title;
+            let formHTML = '';
+            config.fields.forEach(f => { formHTML += `<input type="${f.type || 'text'}" id="gen-${f.id}" placeholder="${f.ph}" required>`; });
+            formHTML += `<button type="submit">Save</button>`;
+            
+            const form = document.getElementById('generic-form');
+            form.innerHTML = formHTML;
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                const newData = {};
+                config.fields.forEach(f => { newData[f.id] = document.getElementById(`gen-${f.id}`).value; });
+                const data = getDB(moduleName); data.push(newData); saveDB(moduleName, data); form.reset(); renderGenericList(moduleName);
+            };
+            renderGenericList(moduleName);
+        }
+
+        function renderGenericList(moduleName) {
+            const data = getDB(moduleName);
+            const list = document.getElementById('generic-list');
+            const config = genericModulesConfig[moduleName];
+            list.innerHTML = data.length === 0 ? '<div class="empty-state">No items saved yet.</div>' : '';
+            
+            data.forEach((item, index) => {
+                let subText = Object.values(item).slice(1).map(v => v.replace(/./g, '*')).join(' • '); 
+                if(moduleName === 'Addresses') subText = Object.values(item).slice(1).join(', '); 
+                
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-details"><span class="item-title">${item[config.fields[0].id]}</span><span class="item-sub">${subText}</span></div>
+                        <button class="btn-icon delete-btn" onclick="deleteItem('${moduleName}', ${index})">✕</button>
+                    </div>`;
+            });
+        }
+
+        function deleteItem(moduleName, index) {
+            const data = getDB(moduleName); data.splice(index, 1); saveDB(moduleName, data);
+            if(moduleName === 'CreditCards') renderCreditCards();
+            else if(moduleName.startsWith('Loyalty')) renderLoyalty(moduleName.split('_')[1]);
+            else renderGenericList(moduleName);
+        }
+
+        // ==========================================
+        // CREDIT CARDS (Untouched)
+        // ==========================================
+        const ccInputs = document.querySelectorAll('.cc-input');
+        ccInputs.forEach((input, index) => {
+            input.addEventListener('input', function() { if (this.value.length === this.maxLength && index < ccInputs.length - 1) ccInputs[index + 1].focus(); });
+            input.addEventListener('keydown', function(e) { if (e.key === 'Backspace' && this.value.length === 0 && index > 0) ccInputs[index - 1].focus(); });
+        });
+
+        document.getElementById('cc-form').onsubmit = (e) => {
+            e.preventDefault();
+            const num = Array.from(ccInputs).slice(0,4).map(i => i.value).join('');
+            const card = { name: document.getElementById('cc-name').value, num: num.slice(-4), exp: `${ccInputs[4].value}/${ccInputs[5].value}` };
+            const data = getDB('CreditCards'); data.push(card); saveDB('CreditCards', data); e.target.reset(); ccInputs[0].focus(); renderCreditCards();
+        };
+
+        function renderCreditCards() {
+            const data = getDB('CreditCards'); const list = document.getElementById('cc-list');
+            list.innerHTML = data.length === 0 ? '<div class="empty-state">No cards saved.</div>' : '';
+            data.forEach((card, index) => {
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-details"><span class="item-title">${card.name}</span><span class="item-sub">•••• •••• •••• ${card.num} | Exp: ${card.exp}</span></div>
+                        <button class="btn-icon delete-btn" onclick="deleteItem('CreditCards', ${index})">✕</button>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // LOYALTY CARDS (Untouched)
+        // ==========================================
+        function switchLoyaltyTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.loyalty-section').forEach(sec => sec.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`loyalty-${tabName}`).classList.add('active');
+        }
+
+        function saveLoyalty(e, type) {
+            e.preventDefault(); let item = {};
+            if(type === 'Gift') item = { title: document.getElementById('lg-brand').value, sub: document.getElementById('lg-code').value };
+            if(type === 'Ref') item = { title: document.getElementById('lr-desc').value, sub: document.getElementById('lr-id').value };
+            if(type === 'QR') item = { title: document.getElementById('lq-name').value, sub: 'QR Data Logged' };
+            const dbKey = `Loyalty_${type}`; const data = getDB(dbKey); data.push(item); saveDB(dbKey, data); e.target.reset(); renderLoyalty(type);
+        }
+
+        function renderLoyalty(type) {
+            const data = getDB(`Loyalty_${type}`); const list = document.getElementById(`list-${type}`);
+            list.innerHTML = data.length === 0 ? `<div class="empty-state">No ${type} records saved.</div>` : '';
+            data.forEach((item, index) => {
+                list.innerHTML += `
+                    <div class="list-item">
+                        <div class="item-details"><span class="item-title">${item.title}</span><span class="item-sub">${item.sub}</span></div>
+                        <button class="btn-icon delete-btn" onclick="deleteItem('Loyalty_${type}', ${index})">✕</button>
+                    </div>`;
+            });
+        }
+
+        // ==========================================
+        // PRESERVED BOOKMARKS APP (Untouched)
+        // ==========================================
+        const bForm = document.getElementById('bookmark-form');
+        const sName = document.getElementById('site-name');
+        const sUrl = document.getElementById('site-url');
+        const eIdx = document.getElementById('edit-index');
+        const bGrid = document.getElementById('bookmarks-grid');
+        const bSearch = document.getElementById('search-input');
+
+        function getB() { return JSON.parse(localStorage.getItem('visual_bookmarks')) || []; }
+        function saveB(b) { localStorage.setItem('visual_bookmarks', JSON.stringify(b)); updateDashboardCounts(); }
+
+        function renderB(filter = '') {
+            const b = getB(); bGrid.innerHTML = ''; 
+            const fb = b.map((x, i) => ({...x, idx: i})).filter(x => x.name.toLowerCase().includes(filter.toLowerCase()));
+            if (fb.length === 0) { bGrid.innerHTML = '<div class="empty-state">No bookmarks.</div>'; return; }
+            fb.forEach((x) => {
+                const w = document.createElement('div'); w.className = 'tile-wrapper';
+                w.innerHTML = `
+                    <a href="${x.url}" target="_blank" class="tile">
+                        <img src="https://s0.wordpress.com/mshots/v1/${encodeURIComponent(x.url)}?w=400" class="preview-img" loading="lazy">
+                        <div class="tile-info"><div class="title">${x.name}</div></div>
+                    </a>
+                    <div class="action-buttons">
+                        <button class="btn-icon edit-btn" style="color:white; width:32px; height:32px; font-size:14px;" onclick="startEdit(${x.idx})">✏️</button>
+                        <button class="btn-icon delete-btn" style="background:#b3261e; color:white; width:32px; height:32px; font-size:14px;" onclick="deleteB(${x.idx}, '${x.name.replace(/'/g, "\\'")}')">✕</button>
+                    </div>`;
+                bGrid.appendChild(w);
+            });
+        }
+
+        bForm.onsubmit = (e) => {
+            e.preventDefault();
+            let url = sUrl.value.trim(); if (!url.startsWith('http')) url = 'https://' + url;
+            const b = getB(); const idx = parseInt(eIdx.value);
+            if (idx === -1) b.push({ name: sName.value.trim(), url }); else { b[idx] = { name: sName.value.trim(), url }; cancelEdit(); }
+            saveB(b); bForm.reset(); renderB(bSearch.value);
+        };
+
+        function startEdit(idx) {
+            const b = getB()[idx]; sName.value = b.name; sUrl.value = b.url; eIdx.value = idx;
+            document.getElementById('submit-btn').textContent = 'Update'; document.getElementById('cancel-btn').style.display = 'block';
+        }
+        function cancelEdit() { bForm.reset(); eIdx.value = -1; document.getElementById('submit-btn').textContent = 'Add Tile'; document.getElementById('cancel-btn').style.display = 'none'; }
+        function deleteB(idx, name) { if(confirm(`Delete ${name}?`)) { const b = getB(); b.splice(idx, 1); saveB(b); renderB(bSearch.value); } }
+        
+        function exportData() {
+            const dataStr = localStorage.getItem('visual_bookmarks') || '[]';
+            const linkElement = document.createElement('a'); linkElement.setAttribute('href', 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr));
+            linkElement.setAttribute('download', 'my_bookmarks_backup.json'); linkElement.click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const c = e.target.result;
+                if (file.name.endsWith('.json')) {
+                    try { const data = JSON.parse(c); if (Array.isArray(data)) { saveB([...getB(), ...data]); renderB(); alert("Imported!"); } } catch(err) {}
+                } else if (file.name.endsWith('.html')) {
+                    const doc = new DOMParser().parseFromString(c, 'text/html');
+                    const links = Array.from(doc.querySelectorAll('a')).map(a => ({ name: a.textContent || 'Import', url: a.href })).filter(l => l.url.startsWith('http'));
+                    if(links.length) { saveB([...getB(), ...links]); renderB(); alert(`Imported ${links.length} bookmarks!`); }
+                }
+            };
+            reader.readAsText(file); event.target.value = ''; 
+        }
+
+        bSearch.addEventListener('input', (e) => renderB(e.target.value));
+
+        // Init
+        updateDashboardCounts();
+        renderB();
+    </script>
+</body>
+</html>
