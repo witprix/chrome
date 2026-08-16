@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#f3f6fc">
     <title>Personal Data Dashboard</title>
     <style>
         /* Universal Box Sizing & Responsive Guards */
         *, *::before, *::after {
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        button, a, .sub-item, .chrome-card-header, .pm-list-item, .list-item, .tile,
+        .pm-nav-item, .btn-icon, .pm-hamburger-btn, .tab-btn { touch-action: manipulation; }
 
         :root {
             --primary-color: #0b57d0; 
@@ -26,8 +31,18 @@
             --input-border: #5f6368;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; overflow-x: hidden; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; overflow-x: hidden;
+            padding: 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
         .container { max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        /* Any element that can be typed into: hold at 16px so Chrome/Android and Safari
+           don't auto-zoom the page on focus. */
+        input, select, textarea { font-size: 16px; }
 
         /* View Management */
         .view-section { display: none; animation: fadeIn 0.3s; }
@@ -147,7 +162,7 @@
         .pm-tab-content.active { display: flex; animation: fadeIn 0.3s; }
         
         .pm-search-container { position: relative; margin-top: 15px; width: 100%; min-width: 0; }
-        .pm-search-container input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 28px; border: none; background: #e9eef6; font-size: 15px; outline: none; box-sizing: border-box; }
+        .pm-search-container input { width: 100%; padding: 14px 15px 14px 45px; border-radius: 28px; border: none; background: #e9eef6; font-size: 16px; outline: none; box-sizing: border-box; }
         .pm-search-container input:focus { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
         .pm-search-icon { position: absolute; left: 18px; top: 14px; color: var(--text-secondary); font-size: 18px;}
 
@@ -159,7 +174,8 @@
         .pm-add-btn:hover { background: var(--hover-bg); }
 
         .pm-list-container { border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; background: white; width: 100%; min-width: 0; }
-        .pm-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; background: white; transition: background 0.2s; justify-content: space-between; min-height: 50px; flex-wrap: wrap; gap: 15px; min-width: 0; }
+        .pm-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); cursor: pointer; background: white; transition: background 0.2s; justify-content: space-between; min-height: 56px; flex-wrap: wrap; gap: 15px; min-width: 0; }
+        .pm-list-item:active { background: var(--hover-bg); }
         .pm-list-item:last-child { border-bottom: none; }
         .pm-list-item:hover { background: var(--hover-bg); }
         .pm-site-info { display: flex; align-items: center; gap: 15px; flex: 1; min-width: 0; }
@@ -177,7 +193,7 @@
         .pm-setting-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; word-wrap: break-word; }
 
         /* CHECKUP CUSTOM UI STYLES */
-        .checkup-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); background: white; min-height: 50px; gap: 15px; flex-wrap: wrap; }
+        .checkup-list-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid var(--border-color); background: white; min-height: 56px; gap: 15px; flex-wrap: wrap; }
         .checkup-list-item:last-child { border-bottom: none; }
         .checkup-icon-green { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #1e8e3e; color: #1e8e3e; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; flex-shrink: 0; }
         .checkup-icon-orange { width: 26px; height: 26px; border-radius: 50%; background: #f29900; color: white; display: flex; justify-content: center; align-items: center; font-size: 16px; font-weight: bold; flex-shrink: 0; }
@@ -201,14 +217,14 @@
         .pm-field-label { font-size: 12px; color: var(--text-secondary); }
         .pm-field-box { background: var(--input-bg); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; min-height: 20px; width: 100%; min-width: 0; }
         .pm-field-box input { border: none; background: transparent; outline: none; width: 100%; font-size: 14px; color: var(--text-color); min-width: 0; text-overflow: ellipsis; overflow: hidden; }
-        .pm-field-actions { display: flex; gap: 15px; color: var(--text-secondary); font-size: 16px; flex-shrink: 0; margin-left: 10px; }
-        .pm-field-actions span { cursor: pointer; }
-        .pm-field-actions span:hover { color: var(--text-color); }
+        .pm-field-actions { display: flex; gap: 4px; color: var(--text-secondary); font-size: 16px; flex-shrink: 0; margin-left: 10px; }
+        .pm-field-actions span { cursor: pointer; padding: 10px; margin: -10px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .pm-field-actions span:hover { color: var(--text-color); background: rgba(0,0,0,0.06); }
         .pm-card-actions { border-top: 1px solid var(--border-color); padding-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .pm-pill-btn { background: transparent; border: 1px solid var(--border-color); border-radius: 20px; padding: 6px 16px; color: var(--primary-color); font-weight: 500; font-size: 13px; cursor: pointer; transition: background 0.2s; }
         .pm-pill-btn:hover { background: var(--hover-bg); }
         
-        .toast-msg { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 10px 20px; border-radius: 4px; font-size: 14px; display: none; z-index: 1000; animation: fadeIn 0.3s; }
+        .toast-msg { position: fixed; bottom: max(20px, calc(env(safe-area-inset-bottom) + 12px)); left: 50%; transform: translateX(-50%); background: #323232; color: white; padding: 10px 20px; border-radius: 4px; font-size: 14px; display: none; z-index: 1000; animation: fadeIn 0.3s; max-width: calc(100vw - 40px); text-align: center; }
 
         /* Settings Custom Buttons */
         .pm-outline-btn { background: transparent; color: var(--primary-color); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; white-space: nowrap; font-size: 13px; flex-shrink: 0; }
@@ -229,16 +245,16 @@
         /* Add Password Modal Styles */
         .pm-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
         .pm-modal-overlay.active { display: flex; }
-        .pm-modal { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; }
+        .pm-modal { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .pm-modal h3 { margin-top: 0; font-weight: 400; font-size: 22px; margin-bottom: 20px;}
-        .pm-modal-select { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: white; font-size: 14px; margin-bottom: 20px; outline: none; }
+        .pm-modal-select { width: 100%; padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); background: white; font-size: 16px; margin-bottom: 20px; outline: none; }
         .pm-input-group { margin-bottom: 16px; position: relative; }
         .pm-input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
-        .pm-input-filled { width: 100%; padding: 12px 15px; background: var(--input-bg); border: none; border-bottom: 1px solid var(--input-border); border-radius: 4px 4px 0 0; font-size: 14px; outline: none; box-sizing: border-box; }
+        .pm-input-filled { width: 100%; padding: 12px 15px; background: var(--input-bg); border: none; border-bottom: 1px solid var(--input-border); border-radius: 4px 4px 0 0; font-size: 16px; outline: none; box-sizing: border-box; }
         .pm-input-filled:focus { border-bottom: 2px solid var(--primary-color); padding-bottom: 11px; }
         .pm-input-site { border-bottom: 2px solid var(--danger); padding-bottom: 11px; }
         .pm-input-site:focus { border-bottom: 2px solid var(--primary-color); }
-        .pm-eye-icon { position: absolute; right: 15px; top: 32px; cursor: pointer; color: var(--text-secondary); font-size: 18px; }
+        .pm-eye-icon { position: absolute; right: 4px; top: 20px; cursor: pointer; color: var(--text-secondary); font-size: 18px; padding: 10px; display: flex; align-items: center; justify-content: center; }
         .pm-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; flex-wrap: wrap; }
         .pm-modal-actions button { padding: 10px 24px; border-radius: 24px; cursor: pointer; font-weight: 500; border: 1px solid transparent; font-size: 14px;}
         .pm-cancel { background: white; color: var(--primary-color); border: 1px solid var(--border-color) !important; }
@@ -256,6 +272,46 @@
             .chrome-card-content { flex-direction: column; }
             .pm-main { padding: 15px 0; overflow-x: hidden; }
             .pm-field-row { flex-direction: column; gap: 10px; }
+            .pm-sidebar { width: 80vw; max-width: 300px; }
+        }
+
+        /* Small phones (most Android devices in portrait) */
+        @media (max-width: 480px) {
+            body { padding: 12px; padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+            .dashboard-header { font-size: 1.4rem; }
+            .chrome-card-header { padding: 14px 16px; }
+            .chrome-card-content { padding: 10px 16px; }
+            .pm-header h2 { font-size: 19px; }
+            .cc-grid { gap: 6px; }
+            .cc-grid input { padding: 12px 6px; }
+            .pm-modal-actions { justify-content: stretch; }
+            .pm-modal-actions button { flex: 1; }
+            .pm-list-item, .list-item { padding: 12px 14px; }
+            .checkup-list-item { padding: 12px 14px; }
+
+            /* Turn the add/edit password dialog into a full-height bottom sheet so the
+               keyboard doesn't push form fields off-screen. */
+            .pm-modal-overlay { align-items: flex-end; padding: 0; }
+            .pm-modal { max-width: 100%; max-height: 92vh; border-radius: 16px 16px 0 0; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        }
+
+        /* Devices without hover (touch/Android/iOS) shouldn't get "stuck" hover states
+           after a tap - swap them for a deliberate :active press effect instead. */
+        @media (hover: none) {
+            .chrome-card-header:hover, .sub-item:hover, .tile:hover, .pm-list-item:hover,
+            .list-item:hover, .btn-icon:hover, .pm-nav-item:hover, .pm-add-btn:hover,
+            .pm-outline-btn:hover, .pm-change-btn:hover, .pm-pill-btn:hover,
+            .form-container button:hover, .back-btn:hover, .pm-hamburger-btn:hover,
+            .pm-dropdown-item:hover, .pm-field-actions span:hover {
+                background: initial;
+                border-color: initial;
+            }
+            .chrome-card-header:active, .sub-item:active { background-color: #e8eaed; }
+            .pm-list-item:active, .list-item:active, .pm-dropdown-item:active { background: var(--hover-bg); }
+            .btn-icon:active, .pm-hamburger-btn:active, .back-btn:active { background: #e1e3e1; }
+            .pm-add-btn:active, .pm-outline-btn:active, .pm-change-btn:active, .pm-pill-btn:active { background: var(--hover-bg); }
+            .form-container button:active { background-color: var(--primary-hover); }
+            .tile:active { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         }
     </style>
 </head>
@@ -376,7 +432,7 @@
                     <!-- SITE DETAIL VIEW -->
                     <div id="pm-site-detail-view" style="display: none; padding-top: 15px;">
                         <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;">
-                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary);" onclick="hideSiteDetails()">←</span>
+                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary); padding: 12px; margin: -12px; display: inline-flex; touch-action: manipulation;" onclick="hideSiteDetails()">←</span>
                             <img src="" id="sd-icon" style="width: 28px; height: 28px; border-radius: 4px; flex-shrink: 0;">
                             <span style="font-size: 20px; font-weight: 400; word-break: break-all;" id="sd-title">Site Name</span>
                         </div>
@@ -409,7 +465,7 @@
                                 <div class="checkup-item-title" id="cu-total">0 passwords checked</div>
                                 <div class="checkup-item-sub">Just now</div>
                             </div>
-                            <div onclick="startCheckupScan()" title="Check again" style="cursor:pointer; font-size: 20px; color: var(--text-secondary); padding: 5px; flex-shrink: 0;">↻</div>
+                            <div onclick="startCheckupScan()" title="Check again" style="cursor:pointer; font-size: 20px; color: var(--text-secondary); padding: 12px; margin: -12px; flex-shrink: 0; touch-action: manipulation;">↻</div>
                         </div>
 
                         <div class="checkup-list-item">
@@ -440,7 +496,7 @@
 
                     <div id="checkup-reused-screen" style="display: none; background: white; border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden;">
                         <div style="padding: 15px 20px; display: flex; align-items: center; gap: 15px; border-bottom: 1px solid var(--border-color); background: white;">
-                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary);" onclick="hideReusedPasswordsDetail()">←</span>
+                            <span style="cursor: pointer; font-size: 20px; color: var(--text-secondary); padding: 12px; margin: -12px; display: inline-flex; touch-action: manipulation;" onclick="hideReusedPasswordsDetail()">←</span>
                             <span style="font-size: 16px; font-weight: 500; min-width: 0;" id="reused-screen-title">0 reused passwords</span>
                         </div>
                         <div style="padding: 20px; background: white;">
@@ -557,23 +613,23 @@
                     <option value="device">Save only on this device</option>
                 </select>
 
-                <form id="pm-add-form" onsubmit="savePassword(event)">
+                <form id="pm-add-form" onsubmit="savePassword(event)" autocomplete="off">
                     <input type="hidden" id="pm-edit-index" value="-1">
                     <input type="hidden" id="pm-url-hidden" value="">
                     
                     <div class="pm-input-group">
                         <label>Site</label>
-                        <input type="text" id="pm-site" class="pm-input-filled pm-input-site" placeholder="example.com" required oninput="validatePmForm()">
+                        <input type="text" id="pm-site" class="pm-input-filled pm-input-site" placeholder="example.com" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" required oninput="validatePmForm()">
                     </div>
                     
                     <div class="pm-input-group">
                         <label>Username</label>
-                        <input type="text" id="pm-user" class="pm-input-filled">
+                        <input type="text" id="pm-user" class="pm-input-filled" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
                     </div>
                     
                     <div class="pm-input-group">
                         <label>Password</label>
-                        <input type="password" id="pm-pass" class="pm-input-filled" required oninput="validatePmForm()">
+                        <input type="password" id="pm-pass" class="pm-input-filled" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="new-password" required oninput="validatePmForm()">
                         <span class="pm-eye-icon" id="pm-modal-eye" onclick="toggleModalPassword()">👁️</span>
                         <div style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Make sure you're saving your current password for this site</div>
                     </div>
@@ -603,18 +659,18 @@
         <!-- CUSTOM: CREDIT CARDS -->
         <div id="view-CreditCards" class="view-section">
             <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1>Credit & Debit Cards</h1></div>
-            <form class="form-container" id="cc-form">
-                <input type="text" id="cc-name" placeholder="Name on Card" style="width: 100%;" required>
+            <form class="form-container" id="cc-form" autocomplete="off">
+                <input type="text" id="cc-name" placeholder="Name on Card" style="width: 100%;" autocapitalize="words" autocomplete="off" required>
                 <div class="cc-grid">
-                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
-                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
-                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
-                    <input type="text" class="cc-input" maxlength="4" placeholder="0000" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
                 </div>
                 <div class="cc-grid" style="flex-wrap: nowrap;">
-                    <input type="text" class="cc-input" maxlength="2" placeholder="MM" required>
-                    <input type="text" class="cc-input" maxlength="2" placeholder="YY" required>
-                    <input type="password" class="cc-input" maxlength="4" placeholder="CVV" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" autocomplete="off" required>
+                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="YY" autocomplete="off" required>
+                    <input type="password" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="CVV" autocomplete="off" required>
                 </div>
                 <button type="submit" style="width: 100%;">Save Card</button>
             </form>
@@ -1242,7 +1298,7 @@
                             <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
                                 <button class="pm-change-btn" onclick="window.open('${href}', '_blank')">Change password <span style="font-size:16px;">↗</span></button>
                                 <div>
-                                    <span class="pm-dots" style="font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0 10px;" onclick="openGlobalDropdown(${originalIdx}, '${passSpanId}', '${safePass}', event)">⋮</span>
+                                    <span class="pm-dots" style="font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 12px 10px; display: inline-flex; align-items: center; touch-action: manipulation;" onclick="openGlobalDropdown(${originalIdx}, '${passSpanId}', '${safePass}', event)">⋮</span>
                                 </div>
                             </div>
                         </div>`;
