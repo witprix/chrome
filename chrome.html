@@ -99,7 +99,7 @@
         .tab-btn.active { background: #d3e3fd; color: #041e49; border-color: transparent; }
         .loyalty-section { display: none; }
         .loyalty-section.active { display: block; }
-        .scan-btn { background-color: #146c2e !important; }
+        .scan-btn { background-color: #146c2e !important; color: white !important; }
 
         /* Bookmarks Preserved Grid */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
@@ -718,44 +718,48 @@
                 <button class="tab-btn" onclick="switchLoyaltyTab('Ref')">Ref IDs</button>
                 <button class="tab-btn" onclick="switchLoyaltyTab('QR')">Activation QRs</button>
             </div>
+            
             <div id="loyalty-Gift" class="loyalty-section active">
-                <form class="form-container" onsubmit="saveLoyalty(event, 'Gift')">
+                <form class="form-container" onsubmit="saveGiftCard(event)">
                     <input type="hidden" id="loyalty-edit-index-Gift" value="-1">
                     <input type="text" id="lg-brand" placeholder="Store / Brand Name" required>
                     <input type="text" id="lg-code" placeholder="Gift Card Code" required>
                     <input type="password" id="lg-pin" placeholder="PIN (Optional)">
-                    <button type="button" class="scan-btn">📷 Scan</button>
+                    <button type="button" class="scan-btn" onclick="mockScan('Gift Card')">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-Gift" style="flex: 1;">Save Gift Card</button>
-                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Gift" style="flex: 1; display: none;" onclick="cancelLoyaltyEdit('Gift')">Cancel</button>
+                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Gift" style="flex: 1; display: none;" onclick="cancelGiftCardEdit()">Cancel</button>
                     </div>
                 </form>
-                <div class="list-container" id="list-Gift"></div>
+                <div class="list-container" id="list-Gift" style="border:none; background:transparent;"></div>
             </div>
+            
             <div id="loyalty-Ref" class="loyalty-section">
-                <form class="form-container" onsubmit="saveLoyalty(event, 'Ref')">
+                <form class="form-container" onsubmit="saveRefId(event)">
                     <input type="hidden" id="loyalty-edit-index-Ref" value="-1">
                     <input type="text" id="lr-desc" placeholder="Transaction Description" required>
                     <input type="text" id="lr-id" placeholder="Reference ID" required>
+                    <button type="button" class="scan-btn" onclick="mockScan('Receipt Barcode')">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-Ref" style="flex: 1;">Save Ref ID</button>
-                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Ref" style="flex: 1; display: none;" onclick="cancelLoyaltyEdit('Ref')">Cancel</button>
+                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Ref" style="flex: 1; display: none;" onclick="cancelRefIdEdit()">Cancel</button>
                     </div>
                 </form>
-                <div class="list-container" id="list-Ref"></div>
+                <div class="list-container" id="list-Ref" style="border:none; background:transparent;"></div>
             </div>
+            
             <div id="loyalty-QR" class="loyalty-section">
-                <form class="form-container" onsubmit="saveLoyalty(event, 'QR')">
+                <form class="form-container" onsubmit="saveQRLogic(event)">
                     <input type="hidden" id="loyalty-edit-index-QR" value="-1">
                     <input type="text" id="lq-name" placeholder="QR Descriptor" required>
                     <input type="text" id="lq-data" placeholder="QR Code Data URL" required>
-                    <button type="button" class="scan-btn">📷 Scan</button>
+                    <button type="button" class="scan-btn" onclick="mockScan('QR Code')">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-QR" style="flex: 1;">Save QR Logic</button>
-                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-QR" style="flex: 1; display: none;" onclick="cancelLoyaltyEdit('QR')">Cancel</button>
+                        <button type="button" class="btn-cancel" id="loyalty-cancel-btn-QR" style="flex: 1; display: none;" onclick="cancelQRLogicEdit()">Cancel</button>
                     </div>
                 </form>
-                <div class="list-container" id="list-QR"></div>
+                <div class="list-container" id="list-QR" style="border:none; background:transparent;"></div>
             </div>
         </div>
 
@@ -818,6 +822,11 @@
             document.querySelector('.pm-layout').classList.toggle('sidebar-open');
         }
 
+        // Camera Initialization Mockup
+        function mockScan(type) {
+            alert(`Initializing device camera for ${type} scanning...\n(Camera API hook placeholder)`);
+        }
+
         // ==========================================
         // DATA & ROUTING ENGINE
         // ==========================================
@@ -849,7 +858,7 @@
             } else {
                 document.getElementById('view-' + moduleName).classList.add('active');
                 if(moduleName === 'CreditCards') renderCreditCards();
-                if(moduleName === 'LoyaltyCards') { renderLoyalty('Gift'); renderLoyalty('Ref'); renderLoyalty('QR'); }
+                if(moduleName === 'LoyaltyCards') { renderGiftCards(); renderRefIds(); renderQRLogics(); }
                 if(moduleName === 'Passwords') { renderPasswordsManager(); loadSettings(); }
             }
         }
@@ -1593,7 +1602,6 @@
         function deleteItem(moduleName, index) {
             const data = getDB(moduleName); data.splice(index, 1); saveDB(moduleName, data);
             if(moduleName === 'CreditCards') renderCreditCards();
-            else if(moduleName.startsWith('Loyalty')) renderLoyalty(moduleName.split('_')[1]);
             else renderGenericList(moduleName);
         }
 
@@ -1786,7 +1794,7 @@
         }
 
         // ==========================================
-        // LOYALTY CARDS
+        // STRICTLY SEPARATED LOYALTY LOGICS
         // ==========================================
         function switchLoyaltyTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1795,77 +1803,202 @@
             document.getElementById(`loyalty-${tabName}`).classList.add('active');
         }
 
-        function saveLoyalty(e, type) {
-            e.preventDefault(); 
-            let item = {};
-            if(type === 'Gift') item = { title: document.getElementById('lg-brand').value, sub: document.getElementById('lg-code').value, pin: document.getElementById('lg-pin').value };
-            if(type === 'Ref') item = { title: document.getElementById('lr-desc').value, sub: document.getElementById('lr-id').value };
-            if(type === 'QR') item = { title: document.getElementById('lq-name').value, sub: document.getElementById('lq-data').value || 'QR Data Logged' };
-
-            const dbKey = `Loyalty_${type}`; 
-            const data = getDB(dbKey); 
-            const editIdx = parseInt(document.getElementById(`loyalty-edit-index-${type}`).value);
+        // --- GIFT CARDS ---
+        function saveGiftCard(e) {
+            e.preventDefault();
+            const item = { 
+                title: document.getElementById('lg-brand').value, 
+                sub: document.getElementById('lg-code').value, 
+                pin: document.getElementById('lg-pin').value 
+            };
+            const data = getDB('Loyalty_Gift');
+            const editIdx = parseInt(document.getElementById('loyalty-edit-index-Gift').value);
             
-            if (editIdx === -1) {
-                data.push(item);
-            } else {
-                data[editIdx] = item;
-            }
+            if (editIdx === -1) data.push(item);
+            else data[editIdx] = item;
             
-            saveDB(dbKey, data); 
-            cancelLoyaltyEdit(type);
-            renderLoyalty(type);
+            saveDB('Loyalty_Gift', data);
+            cancelGiftCardEdit();
+            renderGiftCards();
         }
 
-        function editLoyaltyItem(type, index) {
-            const item = getDB(`Loyalty_${type}`)[index];
-            document.getElementById(`loyalty-edit-index-${type}`).value = index;
+        function editGiftCard(index) {
+            const item = getDB('Loyalty_Gift')[index];
+            document.getElementById('loyalty-edit-index-Gift').value = index;
+            document.getElementById('lg-brand').value = item.title || '';
+            document.getElementById('lg-code').value = item.sub || '';
+            document.getElementById('lg-pin').value = item.pin || '';
             
-            if(type === 'Gift') {
-                document.getElementById('lg-brand').value = item.title || '';
-                document.getElementById('lg-code').value = item.sub || '';
-                document.getElementById('lg-pin').value = item.pin || '';
-            }
-            if(type === 'Ref') {
-                document.getElementById('lr-desc').value = item.title || '';
-                document.getElementById('lr-id').value = item.sub || '';
-            }
-            if(type === 'QR') {
-                document.getElementById('lq-name').value = item.title || '';
-                document.getElementById('lq-data').value = item.sub === 'QR Data Logged' ? '' : (item.sub || '');
-            }
-            
-            document.getElementById(`loyalty-submit-btn-${type}`).textContent = 'Update ' + type;
-            document.getElementById(`loyalty-cancel-btn-${type}`).style.display = 'block';
+            document.getElementById('loyalty-submit-btn-Gift').textContent = 'Update Gift Card';
+            document.getElementById('loyalty-cancel-btn-Gift').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function cancelLoyaltyEdit(type) {
-            const formIds = { 'Gift': 'loyalty-Gift', 'Ref': 'loyalty-Ref', 'QR': 'loyalty-QR' };
-            document.querySelector(`#${formIds[type]} form`).reset();
-            document.getElementById(`loyalty-edit-index-${type}`).value = -1;
-            
-            let btnTxt = 'Save Gift Card';
-            if(type === 'Ref') btnTxt = 'Save Ref ID';
-            if(type === 'QR') btnTxt = 'Save QR Logic';
-            
-            document.getElementById(`loyalty-submit-btn-${type}`).textContent = btnTxt;
-            document.getElementById(`loyalty-cancel-btn-${type}`).style.display = 'none';
+        function cancelGiftCardEdit() {
+            document.querySelector('#loyalty-Gift form').reset();
+            document.getElementById('loyalty-edit-index-Gift').value = -1;
+            document.getElementById('loyalty-submit-btn-Gift').textContent = 'Save Gift Card';
+            document.getElementById('loyalty-cancel-btn-Gift').style.display = 'none';
         }
 
-        function renderLoyalty(type) {
-            const data = getDB(`Loyalty_${type}`); const list = document.getElementById(`list-${type}`);
-            list.innerHTML = data.length === 0 ? `<div class="empty-state">No ${type} records saved.</div>` : '';
+        function deleteGiftCard(index) {
+            const data = getDB('Loyalty_Gift'); data.splice(index, 1); saveDB('Loyalty_Gift', data); renderGiftCards();
+        }
+
+        function renderGiftCards() {
+            const data = getDB('Loyalty_Gift'); const list = document.getElementById('list-Gift');
+            list.innerHTML = data.length === 0 ? '<div class="empty-state">No Gift Cards saved.</div>' : '';
+            
             data.forEach((item, index) => {
+                let seed = 0;
+                if(item.title) { for(let i=0; i<item.title.length; i++) seed += item.title.charCodeAt(i); }
+                const hue = (seed * 25) % 360;
+                
                 list.innerHTML += `
-                    <div class="list-item">
-                        <div class="item-details"><span class="item-title">${item.title}</span><span class="item-sub">${item.sub}</span></div>
-                        <div style="display:flex; gap:8px;">
-                            <button class="btn-icon" style="background:var(--edit); color:white; width:36px; height:36px; font-size:14px;" onclick="editLoyaltyItem('${type}', ${index})">✏️</button>
-                            <button class="btn-icon delete-btn" style="background:var(--danger); color:white; width:36px; height:36px; font-size:14px;" onclick="deleteItem('Loyalty_${type}', ${index})">✕</button>
+                    <div class="list-item" style="flex-direction: column; align-items: stretch; padding: 20px 15px; margin-bottom: 15px; border-radius: 12px; background: linear-gradient(135deg, hsl(${hue}, 70%, 90%), hsl(${(hue+40)%360}, 60%, 80%)); border: 1px solid hsl(${hue}, 30%, 70%);">
+                        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom: 15px;">
+                            <span style="font-size: 18px; font-weight: 700; color: #333;">${item.title}</span>
+                            <span style="font-size: 24px;">🎁</span>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; font-family: monospace; font-size: 18px; letter-spacing: 2px; margin-bottom: 10px; border: 1px dashed #ccc;">
+                            ${item.sub}
+                        </div>
+                        ${item.pin ? `<div style="font-size: 12px; color: #555; text-align: center; margin-bottom: 15px;">PIN: ${item.pin}</div>` : ''}
+                        
+                        <div style="display:flex; gap:10px;">
+                            <button class="pm-change-btn" style="flex: 1; justify-content: center; background: white;" onclick="copyToClipboard('${item.sub}')">⎘ Copy</button>
+                            <button class="pm-change-btn" style="flex: 1; justify-content: center; background: white;" onclick="editGiftCard(${index})">✏️ Edit</button>
+                            <button class="pm-change-btn" style="flex: 1; justify-content: center; background: white; color: var(--danger); border-color: var(--danger);" onclick="deleteGiftCard(${index})">✕ Delete</button>
                         </div>
                     </div>`;
             });
         }
+
+        // --- REF IDS ---
+        function saveRefId(e) {
+            e.preventDefault();
+            const item = { 
+                title: document.getElementById('lr-desc').value, 
+                sub: document.getElementById('lr-id').value 
+            };
+            const data = getDB('Loyalty_Ref');
+            const editIdx = parseInt(document.getElementById('loyalty-edit-index-Ref').value);
+            
+            if (editIdx === -1) data.push(item);
+            else data[editIdx] = item;
+            
+            saveDB('Loyalty_Ref', data);
+            cancelRefIdEdit();
+            renderRefIds();
+        }
+
+        function editRefId(index) {
+            const item = getDB('Loyalty_Ref')[index];
+            document.getElementById('loyalty-edit-index-Ref').value = index;
+            document.getElementById('lr-desc').value = item.title || '';
+            document.getElementById('lr-id').value = item.sub || '';
+            
+            document.getElementById('loyalty-submit-btn-Ref').textContent = 'Update Ref ID';
+            document.getElementById('loyalty-cancel-btn-Ref').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelRefIdEdit() {
+            document.querySelector('#loyalty-Ref form').reset();
+            document.getElementById('loyalty-edit-index-Ref').value = -1;
+            document.getElementById('loyalty-submit-btn-Ref').textContent = 'Save Ref ID';
+            document.getElementById('loyalty-cancel-btn-Ref').style.display = 'none';
+        }
+
+        function deleteRefId(index) {
+            const data = getDB('Loyalty_Ref'); data.splice(index, 1); saveDB('Loyalty_Ref', data); renderRefIds();
+        }
+
+        function renderRefIds() {
+            const data = getDB('Loyalty_Ref'); const list = document.getElementById('list-Ref');
+            list.innerHTML = data.length === 0 ? '<div class="empty-state">No Ref IDs saved.</div>' : '';
+            
+            data.forEach((item, index) => {
+                list.innerHTML += `
+                    <div class="list-item" style="flex-direction: column; align-items: stretch; padding: 0; margin-bottom: 15px; border-radius: 8px; background: white; border: 1px solid var(--border-color); overflow:hidden;">
+                        <div style="background: #f8f9fa; padding: 12px 15px; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between;">
+                            <span style="font-weight: 600; font-size: 14px; color: #333;">🧾 Transaction Ref</span>
+                        </div>
+                        <div style="padding: 15px;">
+                            <div style="font-size: 15px; color: var(--text-color); margin-bottom: 8px;">${item.title}</div>
+                            <div style="font-family: monospace; background: var(--input-bg); padding: 8px; border-radius: 4px; font-size: 14px; word-break: break-all;">${item.sub}</div>
+                        </div>
+                        <div style="display:flex; padding: 10px 15px; background: #fafafa; border-top: 1px solid #eee; gap:10px;">
+                            <button class="pm-pill-btn" style="flex:1;" onclick="copyToClipboard('${item.sub}')">⎘ Copy ID</button>
+                            <button class="pm-pill-btn" onclick="editRefId(${index})">✏️</button>
+                            <button class="pm-pill-btn" style="color:var(--danger); border-color:var(--danger);" onclick="deleteRefId(${index})">✕</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // --- QR LOGIC ---
+        function saveQRLogic(e) {
+            e.preventDefault();
+            const item = { 
+                title: document.getElementById('lq-name').value, 
+                sub: document.getElementById('lq-data').value || 'QR Data Logged' 
+            };
+            const data = getDB('Loyalty_QR');
+            const editIdx = parseInt(document.getElementById('loyalty-edit-index-QR').value);
+            
+            if (editIdx === -1) data.push(item);
+            else data[editIdx] = item;
+            
+            saveDB('Loyalty_QR', data);
+            cancelQRLogicEdit();
+            renderQRLogics();
+        }
+
+        function editQRLogic(index) {
+            const item = getDB('Loyalty_QR')[index];
+            document.getElementById('loyalty-edit-index-QR').value = index;
+            document.getElementById('lq-name').value = item.title || '';
+            document.getElementById('lq-data').value = item.sub === 'QR Data Logged' ? '' : (item.sub || '');
+            
+            document.getElementById('loyalty-submit-btn-QR').textContent = 'Update QR Logic';
+            document.getElementById('loyalty-cancel-btn-QR').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelQRLogicEdit() {
+            document.querySelector('#loyalty-QR form').reset();
+            document.getElementById('loyalty-edit-index-QR').value = -1;
+            document.getElementById('loyalty-submit-btn-QR').textContent = 'Save QR Logic';
+            document.getElementById('loyalty-cancel-btn-QR').style.display = 'none';
+        }
+
+        function deleteQRLogic(index) {
+            const data = getDB('Loyalty_QR'); data.splice(index, 1); saveDB('Loyalty_QR', data); renderQRLogics();
+        }
+
+        function renderQRLogics() {
+            const data = getDB('Loyalty_QR'); const list = document.getElementById('list-QR');
+            list.innerHTML = data.length === 0 ? '<div class="empty-state">No QR Logics saved.</div>' : '';
+            
+            data.forEach((item, index) => {
+                list.innerHTML += `
+                    <div class="list-item" style="display: flex; gap: 15px; padding: 15px; margin-bottom: 15px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <div style="width: 60px; height: 60px; background: #e8eaed; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 30px;">
+                            🔳
+                        </div>
+                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-weight: 600; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.title}</div>
+                            <div style="font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.sub}</div>
+                        </div>
+                        <div style="display:flex; flex-direction: column; gap: 8px; flex-shrink: 0;">
+                            <button class="btn-icon" style="background:var(--edit); color:white; width:30px; height:30px; font-size:12px;" onclick="editQRLogic(${index})">✏️</button>
+                            <button class="btn-icon delete-btn" style="background:var(--danger); color:white; width:30px; height:30px; font-size:12px;" onclick="deleteQRLogic(${index})">✕</button>
+                        </div>
+                    </div>`;
+            });
+        }
+
 
         // ==========================================
         // PRESERVED BOOKMARKS APP (Untouched)
