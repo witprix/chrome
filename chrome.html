@@ -707,7 +707,7 @@
                     <button type="button" class="btn-cancel" id="cc-cancel-btn" style="flex: 1; display: none;" onclick="cancelCCEdit()">Cancel</button>
                 </div>
             </form>
-            <div class="list-container" id="cc-list"></div>
+            <div class="list-container" id="cc-list" style="border: none; background: transparent;"></div>
         </div>
 
         <!-- CUSTOM: LOYALTY -->
@@ -1665,7 +1665,7 @@
 
             const card = {
                 name: document.getElementById('cc-name').value,
-                num: num, // Saving the full 16 digits so it can be effectively retrieved on edit
+                num: num, 
                 exp: `${paddedMonth}/${paddedYear}`
             };
 
@@ -1688,7 +1688,6 @@
             const card = getDB('CreditCards')[index];
             document.getElementById('cc-name').value = card.name;
             
-            // Backwards compatibility for cards saved prior to this fix (if they only had 4 digits)
             if (card.num && card.num.length >= 16) {
                 ccInputs[0].value = card.num.substring(0,4);
                 ccInputs[1].value = card.num.substring(4,8);
@@ -1723,18 +1722,64 @@
             document.getElementById('cc-error').style.display = 'none';
         }
 
+        /* NEW REALISTIC CARD RENDERER */
         function renderCreditCards() {
-            const data = getDB('CreditCards'); const list = document.getElementById('cc-list');
+            const data = getDB('CreditCards'); 
+            const list = document.getElementById('cc-list');
             list.innerHTML = data.length === 0 ? '<div class="empty-state">No cards saved.</div>' : '';
+            
             data.forEach((card, index) => {
-                // Ensure only last 4 digits are rendered securely to the DOM, even if full number is stored
                 const displayNum = (card.num && card.num.length >= 4) ? card.num.slice(-4) : card.num;
+                // Generate a deterministic gradient hue based on the cardholder's name
+                let nameSeed = 0;
+                if (card.name) {
+                    for(let i = 0; i < card.name.length; i++) nameSeed += card.name.charCodeAt(i);
+                }
+                const hue = (nameSeed * 15) % 360;
+                
                 list.innerHTML += `
-                    <div class="list-item">
-                        <div class="item-details"><span class="item-title">${card.name}</span><span class="item-sub">•••• •••• •••• ${displayNum} | Exp: ${card.exp}</span></div>
-                        <div style="display:flex; gap:8px;">
-                            <button class="btn-icon" style="background:var(--edit); color:white; width:36px; height:36px; font-size:14px;" onclick="editCCItem(${index})">✏️</button>
-                            <button class="btn-icon delete-btn" style="background:var(--danger); color:white; width:36px; height:36px; font-size:14px;" onclick="deleteItem('CreditCards', ${index})">✕</button>
+                    <div class="list-item" style="flex-direction: column; align-items: center; padding: 25px 15px; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 16px; background: #fafafa;">
+                        
+                        <!-- Realistic Card Body -->
+                        <div style="background: linear-gradient(135deg, hsl(${hue}, 60%, 45%), hsl(${(hue+40)%360}, 70%, 25%)); 
+                                    color: white; border-radius: 16px; padding: 20px; position: relative; 
+                                    box-shadow: 0 8px 16px rgba(0,0,0,0.15); display: flex; flex-direction: column; 
+                                    justify-content: space-between; aspect-ratio: 1.58 / 1; width: 100%; max-width: 330px; 
+                                    font-family: 'Courier New', Courier, monospace; text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+                                    border: 1px solid rgba(255,255,255,0.2);">
+                            
+                            <!-- Top Row: Chip and Logo Text -->
+                            <div style="display:flex; justify-content: space-between; align-items:flex-start;">
+                                <div style="width: 42px; height: 32px; background: #d4af37; border-radius: 6px; 
+                                            background-image: linear-gradient(to bottom right, #f1e5ac, #d4af37, #aa7c11); 
+                                            box-shadow: inset 0 0 2px rgba(0,0,0,0.5);"></div>
+                                <div style="font-style: italic; font-weight: 800; font-family: sans-serif; opacity: 0.8; font-size: 16px;">
+                                    CARD
+                                </div>
+                            </div>
+                            
+                            <!-- Middle: Card Number -->
+                            <div style="font-size: clamp(20px, 6vw, 24px); letter-spacing: 2px; margin: 20px 0; text-align: center;">
+                                •••• •••• •••• ${displayNum}
+                            </div>
+                            
+                            <!-- Bottom: Name and Expiry -->
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; text-transform: uppercase;">
+                                <div style="flex: 1; min-width: 0; margin-right: 10px;">
+                                    <div style="font-size: 9px; opacity: 0.8; font-family: sans-serif; text-shadow:none; letter-spacing: 1px; margin-bottom: 2px;">Cardholder Name</div>
+                                    <div style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${card.name}</div>
+                                </div>
+                                <div style="text-align: right; flex-shrink: 0;">
+                                    <div style="font-size: 9px; opacity: 0.8; font-family: sans-serif; text-shadow:none; letter-spacing: 1px; margin-bottom: 2px;">Expires</div>
+                                    <div style="font-size: 14px;">${card.exp}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons Container -->
+                        <div style="display:flex; gap:15px; margin-top: 25px; width: 100%; justify-content: center; max-width: 330px;">
+                            <button class="pm-change-btn" style="flex: 1; justify-content: center; border: 1px solid var(--edit); color: var(--edit); padding: 8px 16px; font-size: 14px;" onclick="editCCItem(${index})">✏️ Edit</button>
+                            <button class="pm-change-btn" style="flex: 1; justify-content: center; border: 1px solid var(--danger); color: var(--danger); padding: 8px 16px; font-size: 14px;" onclick="deleteItem('CreditCards', ${index})">✕ Delete</button>
                         </div>
                     </div>`;
             });
