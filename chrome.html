@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#f3f6fc">
     <title>Personal Data Dashboard</title>
+    <!-- Add HTML5-QRCode Library for Camera Scanning -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         /* Universal Box Sizing & Responsive Guards */
         *, *::before, *::after {
@@ -244,7 +246,7 @@
         .progress-bar-container { width: 100%; background-color: #e1e3e1; border-radius: 10px; margin-top: 15px; overflow: hidden; display: none; }
         .progress-bar { width: 0%; height: 6px; background-color: var(--primary-color); transition: width 2s ease-in-out; }
 
-        /* Add Password Modal Styles */
+        /* Modals (Passwords & Scanner) Styles */
         .pm-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
         .pm-modal-overlay.active { display: flex; }
         .pm-modal { background: white; padding: 25px; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-height: 90vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -664,6 +666,17 @@
                 </form>
             </div>
         </div>
+
+        <!-- NEW: HTML5-QRCODE CAMERA SCANNER MODAL -->
+        <div class="pm-modal-overlay" id="scanner-modal">
+            <div class="pm-modal" style="text-align: center;">
+                <h3 id="scanner-title" style="margin-bottom: 15px;">Scan Code</h3>
+                <div id="reader" style="width: 100%; min-height: 300px; background: #e8eaed; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);"></div>
+                <div class="pm-modal-actions" style="justify-content: center; margin-top: 15px;">
+                    <button type="button" class="pm-cancel" onclick="closeScanner()" style="width: 100%;">Cancel</button>
+                </div>
+            </div>
+        </div>
         <!-- ================================================== -->
 
 
@@ -725,7 +738,8 @@
                     <input type="text" id="lg-brand" placeholder="Store / Brand Name" required>
                     <input type="text" id="lg-code" placeholder="Gift Card Code" required>
                     <input type="password" id="lg-pin" placeholder="PIN (Optional)">
-                    <button type="button" class="scan-btn" onclick="mockScan('Gift Card')">📷 Scan</button>
+                    <!-- WIRED TO STRICT GIFT CARD SCANNER -->
+                    <button type="button" class="scan-btn" onclick="startGiftCardScanner()">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-Gift" style="flex: 1;">Save Gift Card</button>
                         <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Gift" style="flex: 1; display: none;" onclick="cancelGiftCardEdit()">Cancel</button>
@@ -739,7 +753,8 @@
                     <input type="hidden" id="loyalty-edit-index-Ref" value="-1">
                     <input type="text" id="lr-desc" placeholder="Transaction Description" required>
                     <input type="text" id="lr-id" placeholder="Reference ID" required>
-                    <button type="button" class="scan-btn" onclick="mockScan('Receipt Barcode')">📷 Scan</button>
+                    <!-- WIRED TO STRICT REF ID SCANNER -->
+                    <button type="button" class="scan-btn" onclick="startRefIdScanner()">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-Ref" style="flex: 1;">Save Ref ID</button>
                         <button type="button" class="btn-cancel" id="loyalty-cancel-btn-Ref" style="flex: 1; display: none;" onclick="cancelRefIdEdit()">Cancel</button>
@@ -753,7 +768,8 @@
                     <input type="hidden" id="loyalty-edit-index-QR" value="-1">
                     <input type="text" id="lq-name" placeholder="QR Descriptor" required>
                     <input type="text" id="lq-data" placeholder="QR Code Data URL" required>
-                    <button type="button" class="scan-btn" onclick="mockScan('QR Code')">📷 Scan</button>
+                    <!-- WIRED TO STRICT QR SCANNER -->
+                    <button type="button" class="scan-btn" onclick="startQRScanner()">📷 Scan</button>
                     <div style="display: flex; gap: 10px; width: 100%; margin-top: 10px;">
                         <button type="submit" id="loyalty-submit-btn-QR" style="flex: 1;">Save QR Logic</button>
                         <button type="button" class="btn-cancel" id="loyalty-cancel-btn-QR" style="flex: 1; display: none;" onclick="cancelQRLogicEdit()">Cancel</button>
@@ -822,9 +838,58 @@
             document.querySelector('.pm-layout').classList.toggle('sidebar-open');
         }
 
-        // Camera Initialization Mockup
-        function mockScan(type) {
-            alert(`Initializing device camera for ${type} scanning...\n(Camera API hook placeholder)`);
+        // ==========================================
+        // DEDICATED HTML5-QRCODE SCANNER LOGIC
+        // ==========================================
+        let html5QrcodeScanner = null;
+
+        function closeScanner() {
+            document.getElementById('scanner-modal').classList.remove('active');
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear().catch(error => {
+                    console.error("Failed to clear scanner.", error);
+                });
+                html5QrcodeScanner = null;
+            }
+        }
+
+        function initScanner(title, successCallback) {
+            document.getElementById('scanner-title').textContent = title;
+            document.getElementById('scanner-modal').classList.add('active');
+            
+            // Wait for modal animation to finish before mounting camera hook
+            setTimeout(() => {
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader", 
+                    { fps: 10, qrbox: {width: 250, height: 250}, aspectRatio: 1.0 }, 
+                    /* verbose= */ false
+                );
+                html5QrcodeScanner.render(successCallback, (err) => {
+                    // Ignore errors to prevent console spam
+                });
+            }, 300);
+        }
+
+        // STRICTLY SEPARATED LOGIC FOR EACH CATEGORY
+        function startGiftCardScanner() {
+            initScanner('Scan Gift Card Barcode/QR', (decodedText, decodedResult) => {
+                document.getElementById('lg-code').value = decodedText;
+                closeScanner();
+            });
+        }
+
+        function startRefIdScanner() {
+            initScanner('Scan Receipt Barcode', (decodedText, decodedResult) => {
+                document.getElementById('lr-id').value = decodedText;
+                closeScanner();
+            });
+        }
+
+        function startQRScanner() {
+            initScanner('Scan Activation QR', (decodedText, decodedResult) => {
+                document.getElementById('lq-data').value = decodedText;
+                closeScanner();
+            });
         }
 
         // ==========================================
@@ -1719,6 +1784,7 @@
             document.getElementById('cc-edit-index').value = index;
             document.getElementById('cc-submit-btn').textContent = 'Update Card';
             document.getElementById('cc-cancel-btn').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function cancelCCEdit() {
@@ -1730,7 +1796,6 @@
             document.getElementById('cc-error').style.display = 'none';
         }
 
-        /* NEW REALISTIC CARD RENDERER */
         function renderCreditCards() {
             const data = getDB('CreditCards'); 
             const list = document.getElementById('cc-list');
