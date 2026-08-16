@@ -87,9 +87,11 @@
         .delete-btn:hover { color: var(--danger); background: #fce8e8; }
         .empty-state { text-align: center; color: var(--text-secondary); padding: 40px; background: var(--card-bg); width: 100%; }
 
-        /* Credit Card specific grid inputs */
+        /* Credit card specific grid inputs */
         .cc-grid { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
         .cc-grid input { text-align: center; letter-spacing: 2px; }
+        .cc-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .cc-field-caption { font-size: 11px; color: var(--text-secondary); text-align: center; }
         
         /* Tabs for Loyalty */
         .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
@@ -660,17 +662,26 @@
         <div id="view-CreditCards" class="view-section">
             <div class="header-bar"><button class="back-btn" onclick="openDashboard()">←</button><h1>Credit & Debit Cards</h1></div>
             <form class="form-container" id="cc-form" autocomplete="off">
-                <input type="text" id="cc-name" placeholder="Name on Card" style="width: 100%;" autocapitalize="words" autocomplete="off" required>
+                <input type="text" id="cc-name" name="dash-cardholder" placeholder="Name on Card" style="width: 100%;" autocapitalize="words" autocomplete="off" required>
                 <div class="cc-grid">
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" required>
+                    <input type="text" class="cc-input" name="dash-cc-a" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" aria-label="Card number, part 1 of 4" required>
+                    <input type="text" class="cc-input" name="dash-cc-b" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" aria-label="Card number, part 2 of 4" required>
+                    <input type="text" class="cc-input" name="dash-cc-c" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" aria-label="Card number, part 3 of 4" required>
+                    <input type="text" class="cc-input" name="dash-cc-d" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000" autocomplete="off" aria-label="Card number, part 4 of 4" required>
                 </div>
                 <div class="cc-grid" style="flex-wrap: nowrap;">
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" autocomplete="off" required>
-                    <input type="text" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="YY" autocomplete="off" required>
-                    <input type="password" class="cc-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="CVV" autocomplete="off" required>
+                    <div class="cc-field">
+                        <input type="text" class="cc-input" name="dash-exp-mo" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration month" required>
+                        <span class="cc-field-caption">Month</span>
+                    </div>
+                    <div class="cc-field">
+                        <input type="text" class="cc-input" name="dash-exp-yr" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration year" required>
+                        <span class="cc-field-caption">Year</span>
+                    </div>
+                    <div class="cc-field">
+                        <input type="password" class="cc-input" name="dash-sec-code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="000" autocomplete="off" aria-label="Security code" required>
+                        <span class="cc-field-caption">Code</span>
+                    </div>
                 </div>
                 <button type="submit" style="width: 100%;">Save Card</button>
             </form>
