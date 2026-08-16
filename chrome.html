@@ -380,6 +380,22 @@
                     <div class="sub-item" onclick="openModule('Bookmarks')"><span class="sub-item-icon">🔖</span><span>Saved Sites <span id="count-Bookmarks" class="sub-item-count">(0)</span></span></div>
                 </div>
             </div>
+            
+            <!-- NEW GLOBAL BACKUP AND RESTORE MODULE -->
+            <div class="chrome-card" style="border-left: 4px solid #f29900; margin-top: 30px;">
+                <div class="chrome-card-header">
+                    <span>Data Management & Backup</span><span style="color: var(--text-secondary);">↓</span>
+                </div>
+                <div class="chrome-card-content">
+                    <div class="sub-item" onclick="globalExport()">
+                        <span class="sub-item-icon">⬇️</span><span>Export All Dashboard Data</span>
+                    </div>
+                    <div class="sub-item" onclick="document.getElementById('global-import-file').click()">
+                        <span class="sub-item-icon">⬆️</span><span>Restore from Backup</span>
+                    </div>
+                    <input type="file" id="global-import-file" accept=".json" style="display: none;" onchange="globalImport(event)">
+                </div>
+            </div>
         </div>
 
         <!-- ================================================== -->
@@ -671,11 +687,11 @@
                 </div>
                 <div class="cc-grid" style="flex-wrap: nowrap;">
                     <div class="cc-field">
-                        <input type="text" class="cc-input" name="dash-exp-mo" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration month" required>
+                        <input type="text" class="cc-input" name="dash-exp-mo" id="cc-exp-mo" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration month" required>
                         <span class="cc-field-caption">Month</span>
                     </div>
                     <div class="cc-field">
-                        <input type="text" class="cc-input" name="dash-exp-yr" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration year" required>
+                        <input type="text" class="cc-input" name="dash-exp-yr" id="cc-exp-yr" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="00" autocomplete="off" aria-label="Expiration year" required>
                         <span class="cc-field-caption">Year</span>
                     </div>
                     <div class="cc-field">
@@ -683,6 +699,7 @@
                         <span class="cc-field-caption">Code</span>
                     </div>
                 </div>
+                <div id="cc-error" style="display:none; color: var(--danger); font-size: 13px; width: 100%;"></div>
                 <button type="submit" style="width: 100%;">Save Card</button>
             </form>
             <div class="list-container" id="cc-list"></div>
@@ -828,6 +845,65 @@
             });
             const loyaltyCount = getDB('Loyalty_Gift').length + getDB('Loyalty_Ref').length + getDB('Loyalty_QR').length;
             if(document.getElementById('count-LoyaltyCards')) document.getElementById('count-LoyaltyCards').textContent = `(${loyaltyCount})`;
+        }
+
+        // ==========================================
+        // GLOBAL EXPORT AND IMPORT LOGIC
+        // ==========================================
+        function globalExport() {
+            const keysToExport = [
+                'dashboard_Passwords', 'dashboard_Passkeys', 'dashboard_Addresses',
+                'dashboard_Licenses', 'dashboard_Passports', 'dashboard_CreditCards',
+                'visual_bookmarks', 'dashboard_Loyalty_Gift', 'dashboard_Loyalty_Ref', 'dashboard_Loyalty_QR',
+                'pm_set_save', 'pm_set_passkey', 'pm_set_auto', 'pm_set_hello'
+            ];
+            
+            const backupData = {};
+            keysToExport.forEach(key => {
+                const storedValue = localStorage.getItem(key);
+                if (storedValue !== null) {
+                    backupData[key] = storedValue;
+                }
+            });
+
+            const dataStr = JSON.stringify(backupData);
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr));
+            linkElement.setAttribute('download', 'Global_Dashboard_Backup.json');
+            linkElement.click();
+        }
+
+        function globalImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (typeof data === 'object' && data !== null) {
+                        let importedCount = 0;
+                        for (const key in data) {
+                            if (key.startsWith('dashboard_') || key === 'visual_bookmarks' || key.startsWith('pm_set_')) {
+                                localStorage.setItem(key, data[key]);
+                                importedCount++;
+                            }
+                        }
+                        
+                        if (importedCount > 0) {
+                            updateDashboardCounts();
+                            alert(`Successfully restored ${importedCount} data categories from backup!`);
+                        } else {
+                            alert("No recognized dashboard data found in this file.");
+                        }
+                    }
+                } catch(err) {
+                    alert("Invalid backup file format.");
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; 
         }
 
         // ==========================================
@@ -1476,8 +1552,58 @@
 
         document.getElementById('cc-form').onsubmit = (e) => {
             e.preventDefault();
-            const num = Array.from(ccInputs).slice(0,4).map(i => i.value).join('');
-            const card = { name: document.getElementById('cc-name').value, num: num.slice(-4), exp: `${ccInputs[4].value}/${ccInputs[5].value}` };
+            const errorBox = document.getElementById('cc-error');
+            const monthField = document.getElementById('cc-exp-mo');
+            const yearField = document.getElementById('cc-exp-yr');
+
+            function showError(msg, field) {
+                errorBox.textContent = msg;
+                errorBox.style.display = 'block';
+                if (field) { field.style.borderColor = 'var(--danger)'; field.focus(); }
+            }
+
+            [monthField, yearField].forEach(f => f.style.borderColor = '');
+            errorBox.style.display = 'none';
+
+            const numParts = Array.from(ccInputs).slice(0, 4).map(i => i.value);
+            const num = numParts.join('');
+            if (num.length !== 16 || !/^\d{16}$/.test(num)) {
+                showError('Enter all 16 digits of the card number.', ccInputs[numParts.findIndex(p => p.length < 4) === -1 ? 0 : numParts.findIndex(p => p.length < 4)]);
+                return;
+            }
+
+            const month = parseInt(monthField.value, 10);
+            const year = parseInt(yearField.value, 10);
+            if (!monthField.value || isNaN(month) || month < 1 || month > 12) {
+                showError('Expiry month must be between 01 and 12.', monthField);
+                return;
+            }
+            if (!yearField.value || yearField.value.length !== 2 || isNaN(year)) {
+                showError('Enter a 2-digit expiry year.', yearField);
+                return;
+            }
+
+            const now = new Date();
+            const currentYear2 = now.getFullYear() % 100;
+            const currentMonth = now.getMonth() + 1;
+            // Treat the 2-digit year as this century; flag it only if the resulting
+            // month/year has clearly already passed.
+            if (year < currentYear2 || (year === currentYear2 && month < currentMonth)) {
+                showError('This card has already expired. Check the month and year.', monthField);
+                return;
+            }
+
+            const cvv = ccInputs[6].value;
+            if (!/^\d{3,4}$/.test(cvv)) {
+                showError('Security code must be 3 or 4 digits.', ccInputs[6]);
+                return;
+            }
+
+            const card = {
+                name: document.getElementById('cc-name').value,
+                num: num.slice(-4),
+                exp: `${monthField.value.padStart(2, '0')}/${yearField.value.padStart(2, '0')}`
+            };
             const data = getDB('CreditCards'); data.push(card); saveDB('CreditCards', data); e.target.reset(); ccInputs[0].focus(); renderCreditCards();
         };
 
