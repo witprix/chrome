@@ -19,6 +19,12 @@
   .filters input { width: 18px; height: 18px; margin-right: 10px; }
   .filters span.cat { flex: 1; }
   .filters span.stat { color: #888; font-size: 0.82rem; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+  .tile { aspect-ratio: 1; background: #23262e; border-radius: 8px; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+  .tile img { width: 100%; height: 100%; object-fit: cover; }
+  .tile .icon { font-size: 1.8rem; }
+  .tile .fname { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #ddd; font-size: 0.6rem; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #loadMoreBtn { background: #2a2d35; }
 </style>
 </head>
 <body>
@@ -39,13 +45,22 @@
   <p class="note warn" id="bigWarn" style="display:none;"></p>
 </div>
 
+<div class="card" id="previewCard" style="display:none;">
+  <label>3. Preview (optional)</label>
+  <p class="note">Photos show real thumbnails. Video/audio/documents show a file icon — thumbnails aren't decoded for those to keep this light on mobile.</p>
+  <p class="note warn">This page can only show and zip files — it has no permission to delete or edit anything in the original folder. To remove originals after your backup, use the Files app or WhatsApp's own Storage and data → Manage storage screen.</p>
+  <button id="previewBtn">Show preview</button>
+  <div class="grid" id="previewGrid"></div>
+  <button id="loadMoreBtn" style="display:none;">Load more</button>
+</div>
+
 <div class="card">
-  <button id="zipBtn" disabled>3. Build ZIP(s) and save to Downloads</button>
+  <button id="zipBtn" disabled>4. Build ZIP(s) and save to Downloads</button>
   <progress id="bar" value="0" max="100" style="display:none;"></progress>
   <div id="log"></div>
 </div>
 
-<p class="note">Tip: to reach WhatsApp's media, use the folder picker and navigate to <b>Android → media → com.whatsapp → WhatsApp → Media</b>. Recent Android versions restrict browser access to some app-private folders (Android/data); this page can only reach whatever the system picker allows you to select — that's an OS-level restriction, not a limitation of this script.</p>
+<p class="note">Tip: step 1, to reach WhatsApp's media, use the folder picker and navigate to <b>Android → media → com.whatsapp → WhatsApp → Media</b>. Recent Android versions restrict browser access to some app-private folders (Android/data); this page can only reach whatever the system picker allows you to select — that's an OS-level restriction, not a limitation of this script.</p>
 
 <script>
 (() => {
@@ -58,6 +73,69 @@
   const bigWarn = document.getElementById('bigWarn');
   const log = document.getElementById('log');
   const bar = document.getElementById('bar');
+  const previewCard = document.getElementById('previewCard');
+  const previewBtn = document.getElementById('previewBtn');
+  const previewGrid = document.getElementById('previewGrid');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  const PAGE_SIZE = 60;
+  let previewFiles = [];
+  let previewShown = 0;
+  const objectUrls = [];
+
+  function isImage(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    return ['jpg','jpeg','png','gif','webp','heic','heif','bmp'].includes(ext);
+  }
+
+  function iconFor(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    if (['mp4','mov','3gp','mkv','avi','webm'].includes(ext)) return '🎬';
+    if (['opus','mp3','m4a','ogg','wav','aac'].includes(ext)) return '🎵';
+    if (['pdf','doc','docx','txt','xls','xlsx','csv'].includes(ext)) return '📄';
+    return '📦';
+  }
+
+  function renderNextPage() {
+    const slice = previewFiles.slice(previewShown, previewShown + PAGE_SIZE);
+    for (const f of slice) {
+      const name = f.webkitRelativePath || f.name;
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      if (isImage(name)) {
+        const url = URL.createObjectURL(f);
+        objectUrls.push(url);
+        const img = document.createElement('img');
+        img.src = url;
+        img.loading = 'lazy';
+        tile.appendChild(img);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'icon';
+        span.textContent = iconFor(name);
+        tile.appendChild(span);
+      }
+      const label = document.createElement('div');
+      label.className = 'fname';
+      label.textContent = name.split('/').pop();
+      tile.appendChild(label);
+      previewGrid.appendChild(tile);
+    }
+    previewShown += slice.length;
+    loadMoreBtn.style.display = previewShown < previewFiles.length ? 'block' : 'none';
+  }
+
+  previewBtn.addEventListener('click', () => {
+    // revoke any previous thumbnails to free memory
+    objectUrls.forEach(u => URL.revokeObjectURL(u));
+    objectUrls.length = 0;
+    previewGrid.innerHTML = '';
+    previewFiles = getSelectedFiles();
+    previewShown = 0;
+    renderNextPage();
+  });
+
+  loadMoreBtn.addEventListener('click', renderNextPage);
 
   const SPLIT_THRESHOLD = 1.5 * 1024 * 1024 * 1024; // ~1.5GB per zip part
 
@@ -104,9 +182,16 @@
         <span class="cat">${cat}</span>
         <span class="stat">${g.files.length} files, ${fmtBytes(g.size)}</span>`;
       filtersEl.appendChild(label);
-      label.querySelector('input').addEventListener('change', updateSelectionSummary);
+      label.querySelector('input').addEventListener('change', () => {
+        updateSelectionSummary();
+        previewGrid.innerHTML = '';
+        loadMoreBtn.style.display = 'none';
+      });
     }
     filterCard.style.display = cats.length ? 'block' : 'none';
+    previewCard.style.display = cats.length ? 'block' : 'none';
+    previewGrid.innerHTML = '';
+    loadMoreBtn.style.display = 'none';
     updateSelectionSummary();
   }
 
