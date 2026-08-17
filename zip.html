@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Folder → ZIP (offline, no external code)</title>
+<style>
+  body { font-family: -apple-system, Roboto, Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px; background: #0f1115; color: #e8e8e8; }
+  h1 { font-size: 1.3rem; }
+  .card { background: #1a1d24; border-radius: 12px; padding: 16px; margin: 14px 0; }
+  button { background: #4f7cff; color: white; border: none; padding: 12px 18px; border-radius: 8px; font-size: 1rem; width: 100%; margin-top: 8px; }
+  button:disabled { background: #333; color: #888; }
+  #log { font-size: 0.85rem; color: #aaa; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+  progress { width: 100%; height: 10px; }
+  .note { font-size: 0.85rem; color: #999; }
+  .warn { color: #ffb84f; }
+  .filters label { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2a2d35; font-size: 0.92rem; }
+  .filters label:last-child { border-bottom: none; }
+  .filters input { width: 18px; height: 18px; margin-right: 10px; }
+  .filters span.cat { flex: 1; }
+  .filters span.stat { color: #888; font-size: 0.82rem; }
+</style>
+</head>
+<body>
+
+<h1>Folder → ZIP</h1>
+<p class="note">Runs entirely in this page. No external scripts, no network requests, no other app. Pick a folder, it zips it in your browser's memory, then saves .zip file(s) to your Downloads folder.</p>
+
+<div class="card">
+  <label>1. Select the folder to back up</label><br><br>
+  <input type="file" id="picker" webkitdirectory multiple>
+  <p class="note" id="summary">No folder selected yet.</p>
+</div>
+
+<div class="card" id="filterCard" style="display:none;">
+  <label>2. Choose what to include</label>
+  <div class="filters" id="filters"></div>
+  <p class="note" id="selSummary"></p>
+  <p class="note warn" id="bigWarn" style="display:none;"></p>
+</div>
+
+<div class="card">
+  <button id="zipBtn" disabled>3. Build ZIP(s) and save to Downloads</button>
+  <progress id="bar" value="0" max="100" style="display:none;"></progress>
+  <div id="log"></div>
+</div>
+
+<p class="note">Tip: to reach WhatsApp's media, use the folder picker and navigate to <b>Android → media → com.whatsapp → WhatsApp → Media</b>. Recent Android versions restrict browser access to some app-private folders (Android/data); this page can only reach whatever the system picker allows you to select — that's an OS-level restriction, not a limitation of this script.</p>
+
+<script>
+(() => {
+  const picker = document.getElementById('picker');
+  const zipBtn = document.getElementById('zipBtn');
+  const summary = document.getElementById('summary');
+  const filterCard = document.getElementById('filterCard');
+  const filtersEl = document.getElementById('filters');
+  const selSummary = document.getElementById('selSummary');
+  const bigWarn = document.getElementById('bigWarn');
+  const log = document.getElementById('log');
+  const bar = document.getElementById('bar');
+
+  const SPLIT_THRESHOLD = 1.5 * 1024 * 1024 * 1024; // ~1.5GB per zip part
+
+  const CATEGORIES = {
+    Photos: ['jpg','jpeg','png','gif','webp','heic','heif','bmp'],
+    Videos: ['mp4','mov','3gp','mkv','avi','webm'],
+    'Voice/Audio': ['opus','mp3','m4a','ogg','wav','aac'],
+    Documents: ['pdf','doc','docx','txt','xls','xlsx','csv'],
+  };
+
+  let allFiles = [];
+  let grouped = {}; // category -> {files:[], size:0}
+
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    if (n < 1024*1024*1024) return (n/1024/1024).toFixed(1) + ' MB';
+    return (n/1024/1024/1024).toFixed(2) + ' GB';
+  }
+
+  function classify(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    for (const [cat, exts] of Object.entries(CATEGORIES)) {
+      if (exts.includes(ext)) return cat;
+    }
+    return 'Other';
+  }
+
+  function rebuildFilterUI() {
+    grouped = {};
+    for (const f of allFiles) {
+      const cat = classify(f.webkitRelativePath || f.name);
+      if (!grouped[cat]) grouped[cat] = { files: [], size: 0 };
+      grouped[cat].files.push(f);
+      grouped[cat].size += f.size;
+    }
+    filtersEl.innerHTML = '';
+    const cats = [...Object.keys(CATEGORIES), 'Other'].filter(c => grouped[c]);
+    for (const cat of cats) {
+      const g = grouped[cat];
+      const id = 'cat-' + cat.replace(/[^a-z]/gi, '');
+      const label = document.createElement('label');
+      label.innerHTML = `<input type="checkbox" id="${id}" checked>
+        <span class="cat">${cat}</span>
+        <span class="stat">${g.files.length} files, ${fmtBytes(g.size)}</span>`;
+      filtersEl.appendChild(label);
+      label.querySelector('input').addEventListener('change', updateSelectionSummary);
+    }
+    filterCard.style.display = cats.length ? 'block' : 'none';
+    updateSelectionSummary();
+  }
+
+  function getSelectedFiles() {
+    const selected = [];
+    for (const cat of Object.keys(grouped)) {
+      const id = 'cat-' + cat.replace(/[^a-z]/gi, '');
+      const cb = document.getElementById(id);
+      if (cb && cb.checked) selected.push(...grouped[cat].files);
+    }
+    return selected;
+  }
+
+  function updateSelectionSummary() {
+    const sel = getSelectedFiles();
+    const total = sel.reduce((s, f) => s + f.size, 0);
+    const parts = Math.max(1, Math.ceil(total / SPLIT_THRESHOLD));
+    selSummary.textContent = sel.length + ' files selected, total ' + fmtBytes(total) +
+      (parts > 1 ? ' — will save as ' + parts + ' zip files (~1.5GB each) to keep memory use safe' : '');
+    bigWarn.style.display = total > 300 * 1024 * 1024 && parts === 1 ? 'block' : 'none';
+    bigWarn.textContent = 'This is a lot of data for a mobile browser to hold in memory at once. It may be slow.';
+    zipBtn.disabled = sel.length === 0;
+  }
+
+  picker.addEventListener('change', () => {
+    allFiles = Array.from(picker.files);
+    const total = allFiles.reduce((s, f) => s + f.size, 0);
+    summary.textContent = allFiles.length + ' files found, total ' + fmtBytes(total);
+    rebuildFilterUI();
+  });
+
+  // ---- CRC32 (self-contained, no library) ----
+  const crcTable = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) {
+        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      }
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  // ---- little-endian byte helpers ----
+  function u16(n) { return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF]); }
+  function u32(n) { return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]); }
+
+  function dosDateTime(date) {
+    const dosDate = (((date.getFullYear() - 1980) & 0x7F) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+    const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | (Math.floor(date.getSeconds() / 2));
+    return { dosDate, dosTime };
+  }
+
+  function logLine(s) {
+    log.textContent += s + '\n';
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function concatBytes(arrs) {
+    let len = 0;
+    for (const a of arrs) len += a.length;
+    const out = new Uint8Array(len);
+    let o = 0;
+    for (const a of arrs) { out.set(a, o); o += a.length; }
+    return out;
+  }
+
+  // ---- group files into size-bounded batches (parts) ----
+  function makeBatches(fileList, maxBytes) {
+    const batches = [];
+    let current = [];
+    let currentSize = 0;
+    for (const f of fileList) {
+      if (currentSize > 0 && currentSize + f.size > maxBytes) {
+        batches.push(current);
+        current = [];
+        currentSize = 0;
+      }
+      current.push(f);
+      currentSize += f.size;
+    }
+    if (current.length) batches.push(current);
+    return batches;
+  }
+
+  // ---- ZIP builder (store method = no compression, so no compression library needed) ----
+  async function buildZip(fileList, onProgress) {
+    const encoder = new TextEncoder();
+    const parts = [];
+    const centralParts = [];
+    let offset = 0;
+    let ok = 0, failed = [];
+
+    for (let i = 0; i < fileList.length; i++) {
+      const f = fileList[i];
+      const name = (f.webkitRelativePath || f.name).replace(/\\/g, '/');
+      try {
+        const nameBytes = encoder.encode(name);
+        const buf = new Uint8Array(await f.arrayBuffer());
+        const crc = crc32(buf);
+        const { dosDate, dosTime } = dosDateTime(new Date(f.lastModified || Date.now()));
+        const flags = 0x0800; // UTF-8 filenames
+
+        const localHeader = concatBytes([
+          u32(0x04034b50), u16(20), u16(flags), u16(0),
+          u16(dosTime), u16(dosDate),
+          u32(crc), u32(buf.length), u32(buf.length),
+          u16(nameBytes.length), u16(0), nameBytes
+        ]);
+
+        const localOffset = offset;
+        parts.push(localHeader, buf);
+        offset += localHeader.length + buf.length;
+
+        const centralHeader = concatBytes([
+          u32(0x02014b50), u16(20), u16(20), u16(flags), u16(0),
+          u16(dosTime), u16(dosDate),
+          u32(crc), u32(buf.length), u32(buf.length),
+          u16(nameBytes.length), u16(0), u16(0), u16(0), u16(0),
+          u32(0), u32(localOffset), nameBytes
+        ]);
+        centralParts.push(centralHeader);
+        ok++;
+      } catch (e) {
+        failed.push(name + ' (' + e.message + ')');
+      }
+
+      if (i % 10 === 0 || i === fileList.length - 1) {
+        onProgress(i + 1, fileList.length, name);
+        await new Promise(r => setTimeout(r, 0)); // let UI breathe
+      }
+    }
+
+    const centralDirStart = offset;
+    let centralSize = 0;
+    for (const c of centralParts) { centralSize += c.length; offset += c.length; }
+
+    const eocd = concatBytes([
+      u32(0x06054b50), u16(0), u16(0),
+      u16(centralParts.length), u16(centralParts.length),
+      u32(centralSize), u32(centralDirStart), u16(0)
+    ]);
+
+    const blob = new Blob([...parts, ...centralParts, eocd], { type: 'application/zip' });
+    return { blob, ok, failed };
+  }
+
+  function triggerDownload(blob, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  }
+
+  zipBtn.addEventListener('click', async () => {
+    zipBtn.disabled = true;
+    bar.style.display = 'block';
+    log.textContent = '';
+    const selected = getSelectedFiles();
+    const batches = makeBatches(selected, SPLIT_THRESHOLD);
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const allFailed = [];
+
+    try {
+      for (let b = 0; b < batches.length; b++) {
+        const batch = batches[b];
+        logLine('--- Building part ' + (b + 1) + '/' + batches.length + ' (' + batch.length + ' files) ---');
+        const { blob, ok, failed } = await buildZip(batch, (done, total, name) => {
+          const overall = Math.round(((b + done / total) / batches.length) * 100);
+          bar.value = overall;
+        });
+        allFailed.push(...failed);
+        const filename = batches.length > 1
+          ? 'backup-' + stamp + '-part' + (b + 1) + 'of' + batches.length + '.zip'
+          : 'backup-' + stamp + '.zip';
+        triggerDownload(blob, filename);
+        logLine('Saved ' + filename + ' — ' + ok + ' files, ' + fmtBytes(blob.size));
+        if (b < batches.length - 1) await new Promise(r => setTimeout(r, 800)); // avoid multi-download block
+      }
+      if (allFailed.length) {
+        logLine('--- ' + allFailed.length + ' file(s) skipped due to errors: ---');
+        allFailed.forEach(f => logLine('  ' + f));
+      }
+      logLine('Done. Check your Downloads folder.');
+    } catch (e) {
+      logLine('Error: ' + e.message);
+    } finally {
+      zipBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
