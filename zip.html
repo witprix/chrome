@@ -24,6 +24,11 @@
   .tile img { width: 100%; height: 100%; object-fit: cover; }
   .tile .icon { font-size: 1.8rem; }
   .tile .fname { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.65); color: #ddd; font-size: 0.6rem; padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .fsize { position: absolute; bottom: 14px; left: 0; right: 0; background: rgba(0,0,0,0.5); color: #aaa; font-size: 0.58rem; padding: 1px 4px; }
+  .tile .cb { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; z-index: 2; }
+  .tile.excluded { opacity: 0.35; }
+  .previewActions { display: flex; gap: 8px; margin-top: 8px; }
+  .previewActions button { width: auto; flex: 1; font-size: 0.85rem; padding: 8px; background: #2a2d35; }
   #loadMoreBtn { background: #2a2d35; }
 </style>
 </head>
@@ -50,6 +55,11 @@
   <p class="note">Photos show real thumbnails. Video/audio/documents show a file icon — thumbnails aren't decoded for those to keep this light on mobile.</p>
   <p class="note warn">This page can only show and zip files — it has no permission to delete or edit anything in the original folder. To remove originals after your backup, use the Files app or WhatsApp's own Storage and data → Manage storage screen.</p>
   <button id="previewBtn">Show preview</button>
+  <div class="previewActions" id="previewActions" style="display:none;">
+    <button id="selectAllBtn">Select all</button>
+    <button id="selectNoneBtn">Deselect all</button>
+  </div>
+  <p class="note" id="previewSummary"></p>
   <div class="grid" id="previewGrid"></div>
   <button id="loadMoreBtn" style="display:none;">Load more</button>
 </div>
@@ -77,11 +87,18 @@
   const previewBtn = document.getElementById('previewBtn');
   const previewGrid = document.getElementById('previewGrid');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const previewActions = document.getElementById('previewActions');
+  const previewSummary = document.getElementById('previewSummary');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const selectNoneBtn = document.getElementById('selectNoneBtn');
 
   const PAGE_SIZE = 60;
   let previewFiles = [];
   let previewShown = 0;
   const objectUrls = [];
+  const excludedPaths = new Set(); // per-file exclusions from the preview grid
+
+  function pathOf(f) { return f.webkitRelativePath || f.name; }
 
   function isImage(name) {
     const ext = (name.split('.').pop() || '').toLowerCase();
@@ -96,12 +113,33 @@
     return '📦';
   }
 
+  function updatePreviewSummary() {
+    const includedCount = previewFiles.filter(f => !excludedPaths.has(pathOf(f))).length;
+    const excludedCount = previewFiles.length - includedCount;
+    previewSummary.textContent = includedCount + ' of ' + previewFiles.length + ' files will be zipped' +
+      (excludedCount ? ' (' + excludedCount + ' excluded here)' : '');
+  }
+
   function renderNextPage() {
     const slice = previewFiles.slice(previewShown, previewShown + PAGE_SIZE);
     for (const f of slice) {
-      const name = f.webkitRelativePath || f.name;
+      const name = pathOf(f);
+      const excluded = excludedPaths.has(name);
       const tile = document.createElement('div');
-      tile.className = 'tile';
+      tile.className = 'tile' + (excluded ? ' excluded' : '');
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'cb';
+      cb.checked = !excluded;
+      cb.addEventListener('change', () => {
+        if (cb.checked) excludedPaths.delete(name); else excludedPaths.add(name);
+        tile.classList.toggle('excluded', !cb.checked);
+        updatePreviewSummary();
+        updateSelectionSummary();
+      });
+      tile.appendChild(cb);
+
       if (isImage(name)) {
         const url = URL.createObjectURL(f);
         objectUrls.push(url);
@@ -115,6 +153,10 @@
         span.textContent = iconFor(name);
         tile.appendChild(span);
       }
+      const sizeLabel = document.createElement('div');
+      sizeLabel.className = 'fsize';
+      sizeLabel.textContent = fmtBytes(f.size);
+      tile.appendChild(sizeLabel);
       const label = document.createElement('div');
       label.className = 'fname';
       label.textContent = name.split('/').pop();
@@ -126,16 +168,34 @@
   }
 
   previewBtn.addEventListener('click', () => {
-    // revoke any previous thumbnails to free memory
     objectUrls.forEach(u => URL.revokeObjectURL(u));
     objectUrls.length = 0;
     previewGrid.innerHTML = '';
-    previewFiles = getSelectedFiles();
+    // largest files first — the ones most worth reviewing before zipping
+    previewFiles = getSelectedFiles().slice().sort((a, b) => b.size - a.size);
     previewShown = 0;
+    previewActions.style.display = 'flex';
+    updatePreviewSummary();
     renderNextPage();
   });
 
   loadMoreBtn.addEventListener('click', renderNextPage);
+
+  selectAllBtn.addEventListener('click', () => {
+    previewFiles.forEach(f => excludedPaths.delete(pathOf(f)));
+    document.querySelectorAll('#previewGrid .tile').forEach(t => t.classList.remove('excluded'));
+    document.querySelectorAll('#previewGrid .cb').forEach(c => c.checked = true);
+    updatePreviewSummary();
+    updateSelectionSummary();
+  });
+
+  selectNoneBtn.addEventListener('click', () => {
+    previewFiles.forEach(f => excludedPaths.add(pathOf(f)));
+    document.querySelectorAll('#previewGrid .tile').forEach(t => t.classList.add('excluded'));
+    document.querySelectorAll('#previewGrid .cb').forEach(c => c.checked = false);
+    updatePreviewSummary();
+    updateSelectionSummary();
+  });
 
   const SPLIT_THRESHOLD = 1.5 * 1024 * 1024 * 1024; // ~1.5GB per zip part
 
@@ -165,6 +225,9 @@
   }
 
   function rebuildFilterUI() {
+    excludedPaths.clear();
+    previewActions.style.display = 'none';
+    previewSummary.textContent = '';
     grouped = {};
     for (const f of allFiles) {
       const cat = classify(f.webkitRelativePath || f.name);
@@ -202,7 +265,7 @@
       const cb = document.getElementById(id);
       if (cb && cb.checked) selected.push(...grouped[cat].files);
     }
-    return selected;
+    return selected.filter(f => !excludedPaths.has(pathOf(f)));
   }
 
   function updateSelectionSummary() {
